@@ -8,8 +8,17 @@ class Settings(BaseSettings):
 
     llm_provider: str = "gemini"
     llm_model: str = ""
+    # Comma-separated, tried in order when the main model is unavailable.
+    llm_fallback_models: str = ""
+    llm_timeout_s: float = 30.0
     gemini_api_key: str = ""
     cache_path: str = "cache.sqlite3"
+
+    @property
+    def model_chain(self) -> list[str]:
+        """Main model first, then fallbacks; blanks and duplicates removed."""
+        names = [self.llm_model, *self.llm_fallback_models.split(",")]
+        return list(dict.fromkeys(n.strip() for n in names if n.strip()))
 
 
 @lru_cache

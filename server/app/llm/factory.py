@@ -1,6 +1,7 @@
 from app.config import Settings
 from app.llm.base import LLMProvider
 from app.llm.fake import FakeProvider
+from app.llm.fallback import FallbackProvider
 from app.llm.gemini import GeminiProvider
 
 
@@ -15,5 +16,9 @@ def make_provider(settings: Settings) -> LLMProvider:
     if name == "gemini":
         if not settings.gemini_api_key or not settings.llm_model:
             raise ProviderConfigError("Set GEMINI_API_KEY and LLM_MODEL in server/.env")
-        return GeminiProvider(api_key=settings.gemini_api_key, model=settings.llm_model)
+        chain: list[tuple[str, LLMProvider]] = [
+            (model, GeminiProvider(settings.gemini_api_key, model, settings.llm_timeout_s))
+            for model in settings.model_chain
+        ]
+        return FallbackProvider(chain)
     raise ProviderConfigError(f"Unknown LLM_PROVIDER {settings.llm_provider!r}")

@@ -3,14 +3,12 @@ from google.genai import errors, types
 
 from app.llm.base import LLMOutputError, LLMProviderError, T
 
-TIMEOUT_MS = 60_000
-
 
 class GeminiProvider:
-    def __init__(self, api_key: str, model: str) -> None:
+    def __init__(self, api_key: str, model: str, timeout_s: float = 30.0) -> None:
         self._model = model
         self._client = genai.Client(
-            api_key=api_key, http_options=types.HttpOptions(timeout=TIMEOUT_MS)
+            api_key=api_key, http_options=types.HttpOptions(timeout=int(timeout_s * 1000))
         )
 
     def generate_json(self, system: str, user: str, schema: type[T]) -> T:

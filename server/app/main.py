@@ -110,7 +110,8 @@ def create_app(
         except LLMProviderError as exc:
             logger.warning("llm provider error: %s", exc)
             raise HTTPException(
-                status_code=502, detail="The AI provider could not be reached. Please try again."
+                status_code=502,
+                detail="The AI service is busy or out of quota right now. Please try again later.",
             ) from None
 
     return app
