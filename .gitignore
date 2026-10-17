@@ -1,0 +1,13 @@
+node_modules/
+.output/
+.wxt/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+server/.env
+*.sqlite
+*.sqlite3
+.DS_Store
+*.egg-info/
