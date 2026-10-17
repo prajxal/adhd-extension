@@ -11,3 +11,4 @@ server/.env
 *.sqlite3
 .DS_Store
 *.egg-info/
+.verify/

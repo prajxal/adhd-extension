@@ -1,15 +1,34 @@
+import { VisualModes } from '@/src/modes/visualModes';
 import { isContentMessage } from '@/src/shared/messages';
-import { loadSettings, onSettingsChanged, type Settings } from '@/src/shared/settings';
+import {
+  isSiteEnabled,
+  loadSettings,
+  onSettingsChanged,
+  updateSettings,
+  type Settings,
+} from '@/src/shared/settings';
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  );
+}
 
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
   main() {
+    const hostname = window.location.hostname;
+    const modes = new VisualModes(hostname);
     let current: Settings | null = null;
 
     const apply = (settings: Settings): void => {
       current = settings;
-      // Visual modes are wired in milestone 2.
+      modes.apply(settings);
     };
 
     void loadSettings().then(apply);
@@ -23,9 +42,22 @@ export default defineContentScript({
           sendResponse({ ok: true });
           return;
         case 'get-hostname':
-          sendResponse({ hostname: window.location.hostname, active: current !== null });
+          sendResponse({ hostname, active: current !== null });
           return;
       }
     });
+
+    // Alt+R toggles the ruler. Uses `code` so it works on macOS, where Alt+R types "®".
+    window.addEventListener(
+      'keydown',
+      (event) => {
+        if (!event.altKey || event.ctrlKey || event.metaKey || event.code !== 'KeyR') return;
+        if (isEditableTarget(event.target)) return; // let people type in fields
+        if (current === null || !isSiteEnabled(current, hostname)) return;
+        event.preventDefault();
+        void updateSettings((s) => ({ ...s, ruler: { ...s.ruler, enabled: !s.ruler.enabled } }));
+      },
+      true,
+    );
   },
 });
