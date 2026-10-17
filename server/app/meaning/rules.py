@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from app.schemas import OriginalSentence, SimplifiedSentence
-from app.validation import NUMBER_RE
+from app.validation import numbers_in
 
 Rule = Literal["number", "negation", "hedge", "name"]
 Severity = Literal["problem", "check"]
@@ -133,7 +133,7 @@ def check_passage(
     # Per simplified sentence: compare with its own sources.
     for index, sentence in enumerate(simplified):
         sources = " ".join(by_id[i] for i in sentence.sourceIds if i in by_id)
-        for number in NUMBER_RE.findall(sentence.text):
+        for number in numbers_in(sentence.text):
             if not _contains_number(sources, number):
                 note(index, "number_new", number)
         added = _explicit_negations(sentence.text)
@@ -151,7 +151,7 @@ def check_passage(
             continue
         group = " ".join(simplified[i].text for i in indexes)
         first = indexes[0]
-        for number in NUMBER_RE.findall(source):
+        for number in numbers_in(source):
             if not _contains_number(group, number):
                 note(first, "number_dropped", number)
         lost = _explicit_negations(source)

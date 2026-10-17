@@ -58,6 +58,14 @@ def test_numbers_match_whole_numbers_only() -> None:
     assert check_numbers("No numbers here.", "None.") == []
 
 
+def test_numbers_ignore_citation_markers() -> None:
+    original = "ADHD[1] affects about 5% of children.[12\u201314][a][note 3][citation needed]"
+    assert check_numbers(original, "ADHD affects about 5% of children.") == []
+    assert check_numbers("Costs rose [3] by 7%.", "Costs rose.") == [
+        'A number from the original may be missing: "7%".'
+    ]
+
+
 def test_rate_limiter_window_slides() -> None:
     now = [0.0]
     limiter = RateLimiter(limit=2, window_s=60, clock=lambda: now[0])

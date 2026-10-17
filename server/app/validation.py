@@ -6,6 +6,16 @@ from app.schemas import GlossaryEntry, SimplifiedSentence
 
 MAX_GLOSSARY = 5
 NUMBER_RE = re.compile(r"\d+(?:[.,]\d+)?%?")
+# Reference markers copied with page text, e.g. Wikipedia's [1], [12-14], [a], [note 3].
+CITATION_RE = re.compile(
+    r"\[(?:\d+(?:\s*[-\u2013,]\s*\d+)*|[a-z]|(?:note|nb)\s*\d+|citation needed)\]",
+    re.IGNORECASE,
+)
+
+
+def numbers_in(text: str) -> list[str]:
+    """Numbers in the text, ignoring citation markers."""
+    return NUMBER_RE.findall(CITATION_RE.sub(" ", text))
 
 
 def check_source_ids(
@@ -62,7 +72,7 @@ def _contains_number(text: str, number: str) -> bool:
 
 
 def check_numbers(original_text: str, simplified_text: str) -> list[str]:
-    numbers = list(dict.fromkeys(NUMBER_RE.findall(original_text)))
+    numbers = list(dict.fromkeys(numbers_in(original_text)))
     return [
         f'A number from the original may be missing: "{n}".'
         for n in numbers
