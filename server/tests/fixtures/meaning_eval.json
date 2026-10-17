@@ -1,0 +1,325 @@
+[
+  {
+    "id": "ok-01",
+    "source": ["The council postponed its final decision until March 2025, citing insufficient public consultation."],
+    "simplified": "The council delayed its final decision until March 2025 because not enough people were consulted.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Plain paraphrase; adds 'not' where the source says 'insufficient' (tricky for the negation rule)."
+  },
+  {
+    "id": "ok-02",
+    "source": ["Attendance at the subsequent hearing declined by 12.5% relative to the previous session."],
+    "simplified": "Attendance at the next hearing fell by 12.5% compared with the last one.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Number kept, everyday words."
+  },
+  {
+    "id": "ok-03",
+    "source": ["The council did not rule out further delays unless additional funding becomes available."],
+    "simplified": "The council said there may be more delays unless it gets more money.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "'did not rule out' correctly rendered as 'may be'; condition kept (tricky for negation rule)."
+  },
+  {
+    "id": "ok-04",
+    "source": ["Estimates suggest that approximately 5% of children are affected worldwide."],
+    "simplified": "Experts think about 5% of children around the world have it.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Hedges kept via synonyms ('think', 'about')."
+  },
+  {
+    "id": "ok-05",
+    "source": ["It is never recommended to discontinue prescribed stimulants without medical supervision."],
+    "simplified": "Never stop taking prescribed stimulants without a doctor's help.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Negations kept."
+  },
+  {
+    "id": "ok-06",
+    "source": ["Treatment typically combines behavioural interventions with medication."],
+    "simplified": "Treatment usually mixes behaviour therapy and medicine.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Simple paraphrase."
+  },
+  {
+    "id": "ok-07",
+    "source": ["The regulator refused to approve the merger between Northwind and Contoso."],
+    "simplified": "The regulator did not allow Northwind and Contoso to merge.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "'refused' → 'did not allow': negation appears only in the simplified text (rule false positive expected)."
+  },
+  {
+    "id": "ok-08",
+    "source": ["Half of the 40 participants reported improved sleep after six weeks."],
+    "simplified": "Half of the 40 people slept better after six weeks.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Number words kept as words."
+  },
+  {
+    "id": "ok-09",
+    "source": [
+      "The bridge will close for repairs on 3 June.",
+      "It is expected to reopen in late August."
+    ],
+    "simplified": "The bridge closes for repairs on 3 June and should reopen in late August.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Two sources merged; hedge 'expected' → 'should'."
+  },
+  {
+    "id": "ok-10",
+    "source": ["Residents who fail to register by Friday cannot vote in the local election."],
+    "simplified": "If you do not register by Friday, you cannot vote in the local election.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Condition and negation kept."
+  },
+  {
+    "id": "ok-11",
+    "source": ["The company's revenue rose to $4.2 billion, up from $3.9 billion a year earlier."],
+    "simplified": "The company made $4.2 billion, more than the $3.9 billion it made the year before.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Both numbers kept."
+  },
+  {
+    "id": "ok-12",
+    "source": ["Researchers at Stanford University found that the drug might slow memory loss in some patients."],
+    "simplified": "Researchers at Stanford University found the drug might slow memory loss in some patients.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Names and hedges kept."
+  },
+  {
+    "id": "ok-13",
+    "source": ["Neither the mayor nor her deputy attended the ceremony."],
+    "simplified": "The mayor and her deputy both missed the ceremony.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Negation expressed lexically ('missed'): rule false positive expected."
+  },
+  {
+    "id": "ok-14",
+    "source": ["Applicants must be at least 18 years old and live in the county."],
+    "simplified": "To apply, you must be 18 or older and live in the county.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Requirement kept."
+  },
+  {
+    "id": "ok-15",
+    "source": ["The storm caused widespread power cuts across Kent on Tuesday night."],
+    "simplified": "On Tuesday night, the storm cut power in many places in Kent.",
+    "label": "faithful",
+    "error_type": null,
+    "note": "Name and date kept; sentence starts with a capitalised name-like word."
+  },
+  {
+    "id": "neg-01",
+    "source": ["The council did not rule out further delays."],
+    "simplified": "The council ruled out more delays.",
+    "label": "error",
+    "error_type": "negation",
+    "note": "Negation flipped."
+  },
+  {
+    "id": "neg-02",
+    "source": ["Patients should never stop the medication without talking to their doctor."],
+    "simplified": "Patients should stop the medication after talking to their doctor.",
+    "label": "error",
+    "error_type": "negation",
+    "note": "'never ... without' lost; reverses advice."
+  },
+  {
+    "id": "neg-03",
+    "source": ["The vaccine is not approved for children under 12."],
+    "simplified": "The vaccine is approved for children under 12.",
+    "label": "error",
+    "error_type": "negation",
+    "note": "Negation dropped."
+  },
+  {
+    "id": "neg-04",
+    "source": ["The study found no link between screen time and grades."],
+    "simplified": "The study found a link between screen time and grades.",
+    "label": "error",
+    "error_type": "negation",
+    "note": "'no' dropped."
+  },
+  {
+    "id": "neg-05",
+    "source": ["Officials said the water is safe to drink."],
+    "simplified": "Officials said the water is not safe to drink.",
+    "label": "error",
+    "error_type": "negation",
+    "note": "Negation added."
+  },
+  {
+    "id": "neg-06",
+    "source": ["Tenants can't be evicted during the winter months."],
+    "simplified": "Tenants can be evicted during the winter months.",
+    "label": "error",
+    "error_type": "negation",
+    "note": "Contracted negation dropped."
+  },
+  {
+    "id": "num-01",
+    "source": ["Attendance declined by 12.5% relative to the previous session."],
+    "simplified": "Attendance fell by 15% compared with the last session.",
+    "label": "error",
+    "error_type": "number",
+    "note": "Number changed."
+  },
+  {
+    "id": "num-02",
+    "source": ["The council postponed the vote until March 2025."],
+    "simplified": "The council moved the vote to May 2025.",
+    "label": "error",
+    "error_type": "number",
+    "note": "Month changed; the year is kept (number rule cannot see this, the judge must)."
+  },
+  {
+    "id": "num-03",
+    "source": ["About 5% of children and 2.5% of adults are affected."],
+    "simplified": "About 5% of children and adults are affected.",
+    "label": "error",
+    "error_type": "number",
+    "note": "Second number dropped, merging two groups."
+  },
+  {
+    "id": "num-04",
+    "source": ["The fine was raised to $500 for a first offence."],
+    "simplified": "The fine is now $5,000 for a first offence.",
+    "label": "error",
+    "error_type": "number",
+    "note": "Number inflated."
+  },
+  {
+    "id": "num-05",
+    "source": ["The trial included 120 adults over six months."],
+    "simplified": "The trial included 120 adults over 16 months.",
+    "label": "error",
+    "error_type": "number",
+    "note": "Duration changed."
+  },
+  {
+    "id": "add-01",
+    "source": ["Treatment typically combines behavioural interventions with medication."],
+    "simplified": "Treatment combines therapy with medication, which is the most effective option.",
+    "label": "error",
+    "error_type": "added",
+    "note": "Added an evaluative claim."
+  },
+  {
+    "id": "add-02",
+    "source": ["The council postponed its decision on the rezoning plan."],
+    "simplified": "The council postponed its decision on the rezoning plan because of strong public opposition.",
+    "label": "error",
+    "error_type": "added",
+    "note": "Invented cause."
+  },
+  {
+    "id": "add-03",
+    "source": ["The bridge will close for repairs on 3 June."],
+    "simplified": "The bridge closes for repairs on 3 June, so drivers should use the ring road.",
+    "label": "error",
+    "error_type": "added",
+    "note": "Added advice."
+  },
+  {
+    "id": "add-04",
+    "source": ["The company's revenue rose to $4.2 billion."],
+    "simplified": "The company's revenue rose to $4.2 billion, its best year ever.",
+    "label": "error",
+    "error_type": "added",
+    "note": "Added unsupported fact."
+  },
+  {
+    "id": "add-05",
+    "source": ["Researchers studied how sleep affects memory in teenagers."],
+    "simplified": "Researchers proved that more sleep improves memory in teenagers.",
+    "label": "error",
+    "error_type": "added",
+    "note": "Turns a study topic into a finding."
+  },
+  {
+    "id": "hedge-01",
+    "source": ["The drug may slow memory loss in some patients."],
+    "simplified": "The drug slows memory loss in patients.",
+    "label": "error",
+    "error_type": "hedge",
+    "note": "'may' and 'some' dropped."
+  },
+  {
+    "id": "hedge-02",
+    "source": ["Early results suggest the policy could reduce traffic by about a third."],
+    "simplified": "The policy reduces traffic by a third.",
+    "label": "error",
+    "error_type": "hedge",
+    "note": "All hedges dropped."
+  },
+  {
+    "id": "hedge-03",
+    "source": ["The outage was probably caused by a software update."],
+    "simplified": "A software update caused the outage.",
+    "label": "error",
+    "error_type": "hedge",
+    "note": "'probably' dropped."
+  },
+  {
+    "id": "hedge-04",
+    "source": ["Approximately 300 people are thought to have attended."],
+    "simplified": "300 people attended.",
+    "label": "error",
+    "error_type": "hedge",
+    "note": "'Approximately' and 'are thought to' dropped."
+  },
+  {
+    "id": "cond-01",
+    "source": ["The council did not rule out further delays unless additional funding becomes available."],
+    "simplified": "The council said there may be more delays.",
+    "label": "error",
+    "error_type": "condition",
+    "note": "'unless' condition dropped (negation rule also likely fires)."
+  },
+  {
+    "id": "cond-02",
+    "source": ["Refunds are available if the item is returned within 30 days."],
+    "simplified": "Refunds are available for returned items.",
+    "label": "error",
+    "error_type": "condition",
+    "note": "Condition and its number dropped."
+  },
+  {
+    "id": "cond-03",
+    "source": ["Students may leave early only if a parent signs the form."],
+    "simplified": "Students may leave early.",
+    "label": "error",
+    "error_type": "condition",
+    "note": "'only if' condition dropped; rules likely miss this."
+  },
+  {
+    "id": "name-01",
+    "source": ["Researchers at Stanford University led the study."],
+    "simplified": "Researchers at Harvard University led the study.",
+    "label": "error",
+    "error_type": "name",
+    "note": "Institution changed."
+  },
+  {
+    "id": "name-02",
+    "source": ["The storm caused power cuts across Kent on Tuesday."],
+    "simplified": "The storm caused power cuts across Kent and Sussex on Tuesday.",
+    "label": "error",
+    "error_type": "name",
+    "note": "Place added."
+  }
+]
