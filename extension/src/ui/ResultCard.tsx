@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactElement } from 'react';
-import type { SimplifyResponse } from '../shared/api';
+import type { CheckSentence, SimplifyResponse } from '../shared/api';
 import type { SimplifyLevel } from '../shared/settings';
-import type { RequestState } from './simplifyFlow';
+import type { CheckState, RequestState } from './simplifyFlow';
 
 export const SLOW_AFTER_MS = 10_000;
 const LEVELS: readonly SimplifyLevel[] = [1, 2, 3];
@@ -10,12 +10,20 @@ const LEVEL_NAMES: Record<SimplifyLevel, string> = { 1: 'Light', 2: 'Plain', 3: 
 type Props = {
   level: SimplifyLevel;
   request: RequestState;
+  check?: CheckState;
   onLevel: (level: SimplifyLevel) => void;
   onRetry: () => void;
   onClose: () => void;
 };
 
-export function ResultCard({ level, request, onLevel, onRetry, onClose }: Props): ReactElement {
+export function ResultCard({
+  level,
+  request,
+  check = { status: 'idle' },
+  onLevel,
+  onRetry,
+  onClose,
+}: Props): ReactElement {
   return (
     <>
       <header className="rw-head">
@@ -36,7 +44,7 @@ export function ResultCard({ level, request, onLevel, onRetry, onClose }: Props)
           </button>
         </div>
       )}
-      {request.status === 'done' && <Result data={request.data} />}
+      {request.status === 'done' && <Result data={request.data} check={check} />}
     </>
   );
 }
@@ -102,15 +110,64 @@ function Loading({ startedAt }: { startedAt: number }): ReactElement {
   );
 }
 
+const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+
+/** One line under the grade: what the meaning check found, or that it's running. */
+export function checkSummary(check: CheckState): string | null {
+  switch (check.status) {
+    case 'idle':
+    case 'off':
+      return null;
+    case 'loading':
+      return 'Checking meaning…';
+    case 'unavailable':
+      return 'Meaning check unavailable';
+    case 'done': {
+      const { problem, check: toCheck } = check.data.summary;
+      const text =
+        problem > 0
+          ? `${plural(problem, 'sentence', 'sentences')} may have changed meaning`
+          : toCheck > 0
+            ? `${plural(toCheck, 'sentence', 'sentences')} to double-check`
+            : '✓ Meaning check passed';
+      return check.data.judge === 'rules' ? `${text} (basic check only)` : text;
+    }
+  }
+}
+
+type Flagged = CheckSentence & { status: 'check' | 'problem' };
+
+const isFlagged = (s: CheckSentence | undefined): s is Flagged =>
+  s !== undefined && s.status !== 'ok';
+
+const FLAG_LABEL: Record<Flagged['status'], string> = {
+  problem: 'Possible meaning change',
+  check: 'Double-check',
+};
+
 function grade(value: number): string {
   return `Grade ${Math.round(value)}`;
 }
 
-function Result({ data }: { data: SimplifyResponse }): ReactElement {
+function Result({ data, check }: { data: SimplifyResponse; check: CheckState }): ReactElement {
   const [openSentence, setOpenSentence] = useState<number | null>(null);
   const [openTerm, setOpenTerm] = useState<number | null>(null);
   const originals = useMemo(() => new Map(data.original.map((s) => [s.id, s.text])), [data]);
   const term = openTerm === null ? undefined : data.glossary[openTerm];
+  const checks = useMemo(
+    () =>
+      new Map<number, CheckSentence>(
+        check.status === 'done' ? check.data.sentences.map((s) => [s.index, s]) : [],
+      ),
+    [check],
+  );
+  const summary = checkSummary(check);
+  const worst =
+    check.status === 'done' && check.data.summary.problem > 0
+      ? 'problem'
+      : check.status === 'done' && check.data.summary.check > 0
+        ? 'check'
+        : 'ok';
 
   return (
     <div className="rw-result">
@@ -123,25 +180,47 @@ function Result({ data }: { data: SimplifyResponse }): ReactElement {
       >
         {grade(data.readability.before)} → {grade(data.readability.after)}
       </p>
+      {summary && (
+        <p className={`rw-check-summary rw-check-${worst}`} role="status" aria-live="polite">
+          {summary}
+        </p>
+      )}
 
       <ol className="rw-sentences">
         {data.simplified.map((sentence, i) => {
           const open = openSentence === i;
+          const flag = checks.get(i);
+          const flagged = isFlagged(flag) ? flag : null;
           return (
             <li key={i}>
               <button
                 type="button"
-                className="rw-sentence"
+                className={flagged ? `rw-sentence rw-flagged-${flagged.status}` : 'rw-sentence'}
                 aria-expanded={open}
                 aria-controls={`rw-src-${i}`}
                 onClick={() => {
                   setOpenSentence(open ? null : i);
                 }}
               >
+                {flagged && (
+                  <>
+                    <span className={`rw-flag rw-flag-${flagged.status}`} aria-hidden="true">
+                      {flagged.status === 'problem' ? '⚠' : '•'}
+                    </span>
+                    <span className="rw-sr">{FLAG_LABEL[flagged.status]}: </span>
+                  </>
+                )}
                 {sentence.text}
               </button>
               {open && (
                 <div className="rw-sources" id={`rw-src-${i}`}>
+                  {flagged && flagged.reasons.length > 0 && (
+                    <ul className="rw-reasons" aria-label="Why this was flagged">
+                      {flagged.reasons.map((r) => (
+                        <li key={r}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
                   <span className="rw-label">Original</span>
                   {sentence.sourceIds.map((id) => (
                     <mark key={id}>{originals.get(id)}</mark>

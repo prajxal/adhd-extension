@@ -1,5 +1,10 @@
 import { VisualModes } from '@/src/modes/visualModes';
-import { parseSimplifyResult, type SimplifyResult } from '@/src/shared/api';
+import {
+  parseCheckResult,
+  parseSimplifyResult,
+  type CheckResult,
+  type SimplifyResult,
+} from '@/src/shared/api';
 import { isContentMessage, type BackgroundMessage } from '@/src/shared/messages';
 import {
   isSiteEnabled,
@@ -37,6 +42,12 @@ async function sendSimplify(text: string, level: SimplifyLevel): Promise<Simplif
   return parseSimplifyResult(reply) ?? { ok: false, error: 'The extension sent an unexpected reply. Try again.' };
 }
 
+async function sendCheck(text: string, level: SimplifyLevel): Promise<CheckResult> {
+  const message: BackgroundMessage = { type: 'check', text, level };
+  const reply: unknown = await browser.runtime.sendMessage(message);
+  return parseCheckResult(reply) ?? { ok: false, reason: 'unavailable' };
+}
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
@@ -56,6 +67,7 @@ export default defineContentScript({
     // ---- Simplify on selection ----
     const flow = new SimplifyFlow({
       send: sendSimplify,
+      check: sendCheck,
       loadSettings,
       acceptPrivacy: async () => {
         await updateSettings((s) => ({ ...s, privacyNoticeAccepted: true }));

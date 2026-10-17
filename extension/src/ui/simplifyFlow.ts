@@ -1,4 +1,4 @@
-import type { SimplifyResponse, SimplifyResult } from '../shared/api';
+import type { CheckResponse, CheckResult, SimplifyResponse, SimplifyResult } from '../shared/api';
 import type { Settings, SimplifyLevel } from '../shared/settings';
 import type { Anchor } from './selection';
 
@@ -7,15 +7,31 @@ export type RequestState =
   | { status: 'error'; message: string }
   | { status: 'done'; data: SimplifyResponse };
 
+/** The meaning check that runs after a successful simplification. */
+export type CheckState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'done'; data: CheckResponse }
+  | { status: 'unavailable' }
+  | { status: 'off' };
+
 export type UiState =
   | { kind: 'hidden' }
   | { kind: 'button'; text: string; anchor: Anchor }
   | { kind: 'notice'; message: string; anchor: Anchor }
   | { kind: 'privacy'; text: string; level: SimplifyLevel; anchor: Anchor }
-  | { kind: 'card'; text: string; level: SimplifyLevel; anchor: Anchor; request: RequestState };
+  | {
+      kind: 'card';
+      text: string;
+      level: SimplifyLevel;
+      anchor: Anchor;
+      request: RequestState;
+      check: CheckState;
+    };
 
 export type FlowDeps = {
   send: (text: string, level: SimplifyLevel) => Promise<SimplifyResult>;
+  check: (text: string, level: SimplifyLevel) => Promise<CheckResult>;
   loadSettings: () => Promise<Settings>;
   acceptPrivacy: () => Promise<void>;
   now?: () => number;
@@ -102,7 +118,14 @@ export class SimplifyFlow {
   private async request(text: string, level: SimplifyLevel, anchor: Anchor): Promise<void> {
     const id = ++this.requestId;
     const now = this.deps.now ?? Date.now;
-    this.set({ kind: 'card', text, level, anchor, request: { status: 'loading', startedAt: now() } });
+    this.set({
+      kind: 'card',
+      text,
+      level,
+      anchor,
+      request: { status: 'loading', startedAt: now() },
+      check: { status: 'idle' },
+    });
     let result: SimplifyResult;
     try {
       result = await this.deps.send(text, level);
@@ -115,6 +138,26 @@ export class SimplifyFlow {
       request: result.ok
         ? { status: 'done', data: result.data }
         : { status: 'error', message: result.error },
+    });
+    if (result.ok) await this.runCheck(id, text, level);
+  }
+
+  /** Same explicit action as the Simplify click: checks the text the user chose to simplify. */
+  private async runCheck(id: number, text: string, level: SimplifyLevel): Promise<void> {
+    if (this.state.kind !== 'card') return;
+    this.set({ ...this.state, check: { status: 'loading' } });
+    let result: CheckResult;
+    try {
+      result = await this.deps.check(text, level);
+    } catch {
+      result = { ok: false, reason: 'unavailable' };
+    }
+    // Re-read: the card may have closed or moved on while we waited.
+    const current = this.getState();
+    if (id !== this.requestId || current.kind !== 'card') return;
+    this.set({
+      ...current,
+      check: result.ok ? { status: 'done', data: result.data } : { status: result.reason },
     });
   }
 }

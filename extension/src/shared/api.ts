@@ -72,3 +72,57 @@ export function parseSimplifyResult(value: unknown): SimplifyResult | null {
   }
   return null;
 }
+
+export type CheckStatus = 'ok' | 'check' | 'problem';
+export type CheckSentence = { index: number; status: CheckStatus; reasons: string[] };
+
+export type CheckResponse = {
+  sentences: CheckSentence[];
+  summary: { ok: number; check: number; problem: number };
+  judge: 'llm' | 'rules';
+  cached: boolean;
+};
+
+/** `off` means the server has the meaning check turned off: hide the check UI entirely. */
+export type CheckResult =
+  | { ok: true; data: CheckResponse }
+  | { ok: false; reason: 'off' | 'unavailable' };
+
+const isStatus = (v: unknown): v is CheckStatus => v === 'ok' || v === 'check' || v === 'problem';
+
+const isCheckSentence = (v: unknown): v is CheckSentence =>
+  isRecord(v) && isNumber(v.index) && isStatus(v.status) && isArrayOf(v.reasons, isString);
+
+export function parseCheckResponse(value: unknown): CheckResponse | null {
+  if (!isRecord(value)) return null;
+  const { sentences, summary, judge, cached } = value;
+  if (
+    isArrayOf(sentences, isCheckSentence) &&
+    isRecord(summary) &&
+    isNumber(summary.ok) &&
+    isNumber(summary.check) &&
+    isNumber(summary.problem) &&
+    (judge === 'llm' || judge === 'rules') &&
+    typeof cached === 'boolean'
+  ) {
+    return {
+      sentences,
+      summary: { ok: summary.ok, check: summary.check, problem: summary.problem },
+      judge,
+      cached,
+    };
+  }
+  return null;
+}
+
+export function parseCheckResult(value: unknown): CheckResult | null {
+  if (!isRecord(value)) return null;
+  if (value.ok === false && (value.reason === 'off' || value.reason === 'unavailable')) {
+    return { ok: false, reason: value.reason };
+  }
+  if (value.ok === true) {
+    const data = parseCheckResponse(value.data);
+    return data ? { ok: true, data } : null;
+  }
+  return null;
+}

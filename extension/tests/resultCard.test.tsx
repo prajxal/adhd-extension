@@ -2,9 +2,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SimplifyLevel } from '@/src/shared/settings';
-import { ResultCard } from '@/src/ui/ResultCard';
-import type { RequestState } from '@/src/ui/simplifyFlow';
-import { SAMPLE } from './fixtures';
+import { checkSummary, ResultCard } from '@/src/ui/ResultCard';
+import type { CheckState, RequestState } from '@/src/ui/simplifyFlow';
+import { CHECK_FLAGGED, CHECK_OK, SAMPLE } from './fixtures';
 
 // Tell React this is a test environment so act() works without warnings.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -12,12 +12,17 @@ import { SAMPLE } from './fixtures';
 let container: HTMLDivElement;
 let root: Root;
 
-function render(request: RequestState, handlers: Partial<{ onLevel: (l: SimplifyLevel) => void; onRetry: () => void; onClose: () => void }> = {}): void {
+function render(
+  request: RequestState,
+  handlers: Partial<{ onLevel: (l: SimplifyLevel) => void; onRetry: () => void; onClose: () => void }> = {},
+  check: CheckState = { status: 'idle' },
+): void {
   act(() => {
     root.render(
       <ResultCard
         level={2}
         request={request}
+        check={check}
         onLevel={handlers.onLevel ?? (() => undefined)}
         onRetry={handlers.onRetry ?? (() => undefined)}
         onClose={handlers.onClose ?? (() => undefined)}
@@ -109,5 +114,76 @@ describe('ResultCard', () => {
     expect(onLevel).toHaveBeenLastCalledWith(1);
     click(container.querySelector('[aria-label="Close"]'));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe('ResultCard meaning check', () => {
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  const done = { status: 'done', data: SAMPLE } as const;
+  const summaryText = (): string | null | undefined => container.querySelector('.rw-check-summary')?.textContent;
+
+  it('summarises every check state', () => {
+    expect(checkSummary({ status: 'idle' })).toBeNull();
+    expect(checkSummary({ status: 'off' })).toBeNull();
+    expect(checkSummary({ status: 'loading' })).toBe('Checking meaning…');
+    expect(checkSummary({ status: 'unavailable' })).toBe('Meaning check unavailable');
+    expect(checkSummary({ status: 'done', data: CHECK_OK })).toBe('✓ Meaning check passed');
+    expect(checkSummary({ status: 'done', data: CHECK_FLAGGED })).toBe('1 sentence may have changed meaning');
+    expect(checkSummary({ status: 'done', data: { ...CHECK_FLAGGED, summary: { ok: 0, check: 2, problem: 0 } } })).toBe(
+      '2 sentences to double-check',
+    );
+    expect(checkSummary({ status: 'done', data: { ...CHECK_OK, judge: 'rules' } })).toBe(
+      '✓ Meaning check passed (basic check only)',
+    );
+  });
+
+  it('hides the check UI when the server has it turned off', () => {
+    render(done, {}, { status: 'off' });
+    expect(container.querySelector('.rw-check-summary')).toBeNull();
+    expect(container.querySelector('.rw-flag')).toBeNull();
+  });
+
+  it('shows a live status line while checking', () => {
+    render(done, {}, { status: 'loading' });
+    expect(summaryText()).toBe('Checking meaning…');
+    expect(container.querySelector('.rw-check-summary')?.getAttribute('aria-live')).toBe('polite');
+  });
+
+  it('marks flagged sentences with a visible marker and a screen-reader label', () => {
+    render(done, {}, { status: 'done', data: CHECK_FLAGGED });
+    expect(summaryText()).toBe('1 sentence may have changed meaning');
+    const sentences = container.querySelectorAll('.rw-sentence');
+    expect(sentences[0]?.querySelector('.rw-flag')?.textContent).toBe('⚠');
+    expect(sentences[0]?.querySelector('.rw-sr')?.textContent).toBe('Possible meaning change: ');
+    expect(sentences[1]?.querySelector('.rw-flag')?.textContent).toBe('•');
+    expect(sentences[1]?.querySelector('.rw-sr')?.textContent).toBe('Double-check: ');
+  });
+
+  it('shows the reasons above the original when a flagged sentence is expanded', () => {
+    render(done, {}, { status: 'done', data: CHECK_FLAGGED });
+    click(container.querySelector('.rw-sentence'));
+    const reasons = [...container.querySelectorAll('.rw-reasons li')].map((li) => li.textContent);
+    expect(reasons).toEqual(['Negation may be lost (original says "not").', 'Says the vote happened.']);
+    const sources = container.querySelector('.rw-sources');
+    expect(sources?.firstElementChild?.className).toBe('rw-reasons');
+    expect(sources?.querySelector('mark')).not.toBeNull();
+  });
+
+  it('shows no markers when every sentence passed', () => {
+    render(done, {}, { status: 'done', data: CHECK_OK });
+    expect(summaryText()).toBe('✓ Meaning check passed');
+    expect(container.querySelector('.rw-flag')).toBeNull();
   });
 });

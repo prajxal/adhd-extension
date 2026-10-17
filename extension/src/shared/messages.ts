@@ -14,7 +14,10 @@ export type ContentMessage = ApplySettingsMessage | GetHostnameMessage | Simplif
 /** Content → background: call the server. Replies with a SimplifyResult. */
 export type SimplifyRequestMessage = { type: 'simplify'; text: string; level: SimplifyLevel };
 
-export type BackgroundMessage = SimplifyRequestMessage;
+/** Content → background: check the meaning of that simplification. Replies with a CheckResult. */
+export type CheckRequestMessage = { type: 'check'; text: string; level: SimplifyLevel };
+
+export type BackgroundMessage = SimplifyRequestMessage | CheckRequestMessage;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -32,7 +35,7 @@ export function isContentMessage(value: unknown): value is ContentMessage {
 export function isBackgroundMessage(value: unknown): value is BackgroundMessage {
   return (
     isRecord(value) &&
-    value.type === 'simplify' &&
+    (value.type === 'simplify' || value.type === 'check') &&
     typeof value.text === 'string' &&
     (value.level === 1 || value.level === 2 || value.level === 3)
   );

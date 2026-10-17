@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { parseSimplifyResponse, parseSimplifyResult } from '@/src/shared/api';
-import { requestSimplify } from '@/src/shared/simplifyClient';
-import { SAMPLE } from './fixtures';
+import { parseCheckResponse, parseCheckResult, parseSimplifyResponse, parseSimplifyResult } from '@/src/shared/api';
+import { requestCheck, requestSimplify } from '@/src/shared/simplifyClient';
+import { CHECK_FLAGGED, SAMPLE } from './fixtures';
 
 const SERVER = 'http://localhost:8000';
 
@@ -77,5 +77,41 @@ describe('requestSimplify', () => {
   it('rejects an unexpected 200 body', async () => {
     const result = await requestSimplify(SERVER, 't', 2, fakeFetch(() => json(200, { nope: true })));
     expect(result).toEqual({ ok: false, error: 'The server sent an unexpected response.' });
+  });
+});
+
+describe('check response parsing', () => {
+  it('accepts a valid check and rejects bad ones', () => {
+    expect(parseCheckResponse(CHECK_FLAGGED)).toEqual(CHECK_FLAGGED);
+    expect(parseCheckResponse({ ...CHECK_FLAGGED, judge: 'gpt' })).toBeNull();
+    expect(parseCheckResponse({ ...CHECK_FLAGGED, sentences: [{ index: 0, status: 'bad', reasons: [] }] })).toBeNull();
+    expect(parseCheckResult({ ok: false, reason: 'off' })).toEqual({ ok: false, reason: 'off' });
+    expect(parseCheckResult({ ok: false, reason: 'nope' })).toBeNull();
+  });
+});
+
+describe('requestCheck', () => {
+  it('posts to /check and returns parsed data', async () => {
+    let url = '';
+    const fetchFn: typeof fetch = (input) => {
+      url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      return json(200, CHECK_FLAGGED);
+    };
+    expect(await requestCheck(SERVER, 't', 2, fetchFn)).toEqual({ ok: true, data: CHECK_FLAGGED });
+    expect(url).toBe(`${SERVER}/check`);
+  });
+
+  it.each([
+    [404, 'off'],
+    [409, 'unavailable'],
+    [502, 'unavailable'],
+    [429, 'unavailable'],
+  ])('maps HTTP %i to %s', async (status, reason) => {
+    expect(await requestCheck(SERVER, 't', 2, fakeFetch(() => json(status, {})))).toEqual({ ok: false, reason });
+  });
+
+  it('is quietly unavailable when the server is down or replies badly', async () => {
+    expect(await requestCheck(SERVER, 't', 2, fakeFetch(() => Promise.reject(new TypeError('x'))))).toEqual({ ok: false, reason: 'unavailable' });
+    expect(await requestCheck(SERVER, 't', 2, fakeFetch(() => json(200, { nope: 1 })))).toEqual({ ok: false, reason: 'unavailable' });
   });
 });

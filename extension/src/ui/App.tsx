@@ -57,6 +57,7 @@ export function App({ flow }: { flow: SimplifyFlow }): ReactElement | null {
           <ResultCard
             level={state.level}
             request={state.request}
+            check={state.check}
             onLevel={(level) => {
               void flow.changeLevel(level);
             }}

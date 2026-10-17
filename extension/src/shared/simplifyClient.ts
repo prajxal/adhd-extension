@@ -1,4 +1,4 @@
-import { parseSimplifyResponse, type SimplifyResult } from './api';
+import { parseCheckResponse, parseSimplifyResponse, type CheckResult, type SimplifyResult } from './api';
 import type { SimplifyLevel } from './settings';
 
 /** The server may try several models in turn, so allow it plenty of time. */
@@ -68,4 +68,37 @@ export async function requestSimplify(
   }
   const data = parseSimplifyResponse(body);
   return data ? { ok: true, data } : { ok: false, error: 'The server sent an unexpected response.' };
+}
+
+/**
+ * Asks the server to check the meaning of the simplification it already made for this
+ * text and level. Failures are quiet: the card just says the check is unavailable.
+ */
+export async function requestCheck(
+  serverUrl: string,
+  text: string,
+  level: SimplifyLevel,
+  fetchFn: typeof fetch = fetch,
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<CheckResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  try {
+    const response = await fetchFn(`${serverUrl}/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, level }),
+      signal: controller.signal,
+    });
+    if (response.status === 404) return { ok: false, reason: 'off' };
+    if (!response.ok) return { ok: false, reason: 'unavailable' };
+    const data = parseCheckResponse(await response.json());
+    return data ? { ok: true, data } : { ok: false, reason: 'unavailable' };
+  } catch {
+    return { ok: false, reason: 'unavailable' };
+  } finally {
+    clearTimeout(timer);
+  }
 }

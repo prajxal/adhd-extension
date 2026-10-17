@@ -1,8 +1,16 @@
-import { isBackgroundMessage, type ContentMessage } from '@/src/shared/messages';
+import type { CheckResult, SimplifyResult } from '@/src/shared/api';
+import { isBackgroundMessage, type BackgroundMessage, type ContentMessage } from '@/src/shared/messages';
 import { loadSettings } from '@/src/shared/settings';
-import { requestSimplify } from '@/src/shared/simplifyClient';
+import { requestCheck, requestSimplify } from '@/src/shared/simplifyClient';
 
 const MENU_ID = 'rw-simplify-selection';
+
+async function handle(message: BackgroundMessage): Promise<SimplifyResult | CheckResult> {
+  const { serverUrl } = await loadSettings();
+  return message.type === 'simplify'
+    ? requestSimplify(serverUrl, message.text, message.level)
+    : requestCheck(serverUrl, message.text, message.level);
+}
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => {
@@ -27,9 +35,7 @@ export default defineBackground(() => {
   // The only network call to the server. The extension never talks to an LLM directly.
   browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
     if (!isBackgroundMessage(message)) return;
-    void loadSettings()
-      .then((settings) => requestSimplify(settings.serverUrl, message.text, message.level))
-      .then(sendResponse);
+    void handle(message).then(sendResponse);
     return true; // keep the channel open for the async reply
   });
 });
