@@ -13,9 +13,10 @@ from app.config import get_settings
 from app.llm.base import LLMOutputError, LLMProviderError
 from app.llm.factory import ProviderConfigError, make_provider
 from app.logging_utils import logger
+from app.meaning.check import CheckService, NotSimplifiedError
 from app.pipeline import SimplifyService
 from app.ratelimit import RateLimiter
-from app.schemas import SimplifyRequest, SimplifyResponse
+from app.schemas import CheckResponse, SimplifyRequest, SimplifyResponse
 
 
 def _configure_logging() -> None:
@@ -29,6 +30,7 @@ def _configure_logging() -> None:
 def create_app(
     service: SimplifyService | None = None,
     limiter: RateLimiter | None = None,
+    check_service: CheckService | None = None,
 ) -> FastAPI:
     _configure_logging()
     app = FastAPI(title="Readwell server")
@@ -39,20 +41,28 @@ def create_app(
         allow_headers=["Content-Type"],
     )
     rate_limiter = limiter or RateLimiter(limit=30, window_s=60)
+    if (service is None) != (check_service is None):
+        raise ValueError("pass both service and check_service, or neither")
     service_lock = threading.Lock()
-    service_holder: list[SimplifyService] = [service] if service else []
+    service_holder: list[tuple[SimplifyService, CheckService]] = []
+    if service is not None and check_service is not None:
+        service_holder.append((service, check_service))
 
-    def get_service() -> SimplifyService:
+    def get_services() -> tuple[SimplifyService, CheckService]:
         # Built lazily so the app (and /health) start even without an API key.
         with service_lock:
             if not service_holder:
                 settings = get_settings()
+                provider = make_provider(settings)
                 model = settings.llm_model or settings.llm_provider
-                service_holder.append(
-                    SimplifyService(
-                        make_provider(settings), ResponseCache(settings.cache_path), model
-                    )
+                simplifier = SimplifyService(provider, ResponseCache(settings.cache_path), model)
+                checker = CheckService(
+                    simplifier,
+                    provider,
+                    ResponseCache(settings.cache_path, table="check_cache"),
+                    settings.meaning_check,
                 )
+                service_holder.append((simplifier, checker))
             return service_holder[0]
 
     def rate_limit(request: Request) -> None:
@@ -98,7 +108,7 @@ def create_app(
     @app.post("/simplify", dependencies=[Depends(rate_limit)])
     def simplify(body: SimplifyRequest) -> SimplifyResponse:
         try:
-            return get_service().simplify(body.text, body.level)
+            return get_services()[0].simplify(body.text, body.level)
         except ProviderConfigError as exc:
             logger.error("provider not configured")
             raise HTTPException(status_code=503, detail=str(exc)) from None
@@ -113,6 +123,20 @@ def create_app(
                 status_code=502,
                 detail="The AI service is busy or out of quota right now. Please try again later.",
             ) from None
+
+    @app.post("/check", dependencies=[Depends(rate_limit)])
+    def check(body: SimplifyRequest) -> CheckResponse:
+        try:
+            checker = get_services()[1]
+        except ProviderConfigError as exc:
+            logger.error("provider not configured")
+            raise HTTPException(status_code=503, detail=str(exc)) from None
+        if checker.mode == "off":
+            raise HTTPException(status_code=404, detail="The meaning check is turned off.")
+        try:
+            return checker.check(body.text, body.level)
+        except NotSimplifiedError:
+            raise HTTPException(status_code=409, detail="Simplify this text first.") from None
 
     return app
 

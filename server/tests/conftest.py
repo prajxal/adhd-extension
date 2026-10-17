@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.cache import ResponseCache
 from app.llm.fake import FakeProvider
 from app.main import create_app
+from app.meaning.check import CheckService, MeaningCheckMode
 from app.pipeline import SimplifyService
 from app.ratelimit import RateLimiter
 
@@ -33,12 +34,16 @@ MakeClient = Callable[..., tuple[TestClient, FakeProvider]]
 @pytest.fixture
 def make_client(tmp_path: Path) -> MakeClient:
     def _make(
-        responses: list[Any] | None = None, limiter: RateLimiter | None = None
+        responses: list[Any] | None = None,
+        limiter: RateLimiter | None = None,
+        mode: MeaningCheckMode = "llm",
     ) -> tuple[TestClient, FakeProvider]:
         provider = FakeProvider(responses if responses is not None else [GOOD])
-        cache = ResponseCache(str(tmp_path / "cache.sqlite3"))
-        service = SimplifyService(provider, cache, model="fake-model")
-        return TestClient(create_app(service=service, limiter=limiter)), provider
+        path = str(tmp_path / "cache.sqlite3")
+        service = SimplifyService(provider, ResponseCache(path), model="fake-model")
+        checker = CheckService(service, provider, ResponseCache(path, table="check_cache"), mode)
+        app = create_app(service=service, limiter=limiter, check_service=checker)
+        return TestClient(app), provider
 
     return _make
 

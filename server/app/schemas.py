@@ -59,3 +59,25 @@ class SimplifyResponse(BaseModel):
     readability: Readability
     cached: bool
     warnings: list[str]
+
+
+Status = Literal["ok", "check", "problem"]
+
+
+class CheckSentence(BaseModel):
+    index: int
+    status: Status
+    reasons: list[str]
+
+
+class CheckSummary(BaseModel):
+    ok: int
+    check: int
+    problem: int
+
+
+class CheckResponse(BaseModel):
+    sentences: list[CheckSentence]
+    summary: CheckSummary
+    judge: Literal["llm", "rules"]
+    cached: bool

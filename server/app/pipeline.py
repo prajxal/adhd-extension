@@ -41,16 +41,25 @@ class SimplifyService:
         self._cache = cache
         self._model = model
 
+    def key_for(self, text: str, level: int) -> str:
+        return cache_key(normalise_whitespace(text), level, self._model)
+
+    def cached(self, text: str, level: int) -> SimplifyResponse | None:
+        """The stored response for this text and level, if /simplify already produced it."""
+        hit = self._cache.get(self.key_for(text, level))
+        if hit is None:
+            return None
+        return SimplifyResponse.model_validate_json(hit).model_copy(update={"cached": True})
+
     def simplify(self, text: str, level: int) -> SimplifyResponse:
         started = time.perf_counter()
         normalised = normalise_whitespace(text)
-        key = cache_key(normalised, level, self._model)
+        key = self.key_for(text, level)
 
-        hit = self._cache.get(key)
+        hit = self.cached(text, level)
         if hit is not None:
-            response = SimplifyResponse.model_validate_json(hit).model_copy(update={"cached": True})
-            self._log(normalised, level, response, started)
-            return response
+            self._log(normalised, level, hit, started)
+            return hit
 
         original = segment(normalised)
         output = self._generate(

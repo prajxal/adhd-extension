@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +14,8 @@ class Settings(BaseSettings):
     llm_timeout_s: float = 30.0
     gemini_api_key: str = ""
     cache_path: str = "cache.sqlite3"
+    # Phase 2 meaning check: LLM judge + rules, rules only, or turned off.
+    meaning_check: Literal["llm", "rules", "off"] = "llm"
 
     @property
     def model_chain(self) -> list[str]:
