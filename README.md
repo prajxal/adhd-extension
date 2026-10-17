@@ -38,7 +38,7 @@ Check it: `curl localhost:8000/health` should return `{"ok":true}`.
 |---|---|
 | `LLM_PROVIDER` | `gemini` for real use, or `fake` to run with no API key (it echoes the input back, which is handy for UI work) |
 | `LLM_MODEL` | Main Gemini model, e.g. `gemini-3.6-flash` |
-| `LLM_FALLBACK_MODELS` | Comma-separated models tried in order when the main one is busy, slow or out of quota, e.g. `gemini-3.5-flash,gemini-3.7-flash` |
+| `LLM_FALLBACK_MODELS` | Comma-separated models tried in order when the main one is busy, slow or out of quota, e.g. `gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.7-flash` |
 | `LLM_TIMEOUT_S` | Seconds to wait for each model before moving to the next (default `30`) |
 | `GEMINI_API_KEY` | Your key from Google AI Studio |
 | `CACHE_PATH` | SQLite cache file (default `cache.sqlite3`) |
