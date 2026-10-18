@@ -18,20 +18,40 @@ export const SAMPLE: SimplifyResponse = {
 
 export const CHECK_OK: CheckResponse = {
   sentences: [
-    { index: 0, status: 'ok', reasons: [] },
-    { index: 1, status: 'ok', reasons: [] },
+    { index: 0, status: 'ok', reasons: [], repair: null },
+    { index: 1, status: 'ok', reasons: [], repair: null },
   ],
-  summary: { ok: 2, check: 0, problem: 0 },
+  summary: { ok: 2, check: 0, problem: 0, repaired: 0 },
   judge: 'llm',
   cached: false,
 };
 
 export const CHECK_FLAGGED: CheckResponse = {
   sentences: [
-    { index: 0, status: 'problem', reasons: ['Negation may be lost (original says "not").', 'Says the vote happened.'] },
-    { index: 1, status: 'check', reasons: ['May sound more certain than the original ("about").'] },
+    { index: 0, status: 'problem', reasons: ['Negation may be lost (original says "not").', 'Says the vote happened.'], repair: null },
+    { index: 1, status: 'check', reasons: ['May sound more certain than the original ("about").'], repair: null },
   ],
-  summary: { ok: 0, check: 1, problem: 1 },
+  summary: { ok: 0, check: 1, problem: 1, repaired: 0 },
+  judge: 'llm',
+  cached: false,
+};
+
+/** Sentence 0 was repaired and now passes; sentence 1 still needs a double-check. */
+export const CHECK_REPAIRED: CheckResponse = {
+  sentences: [
+    {
+      index: 0,
+      status: 'ok',
+      reasons: [],
+      repair: {
+        text: 'The committee moved the vote to March 2025.',
+        previous: 'The group moved the vote to May 2025.',
+        fixed: ['Number check: "2025" from the original is missing.', 'Changes the month.'],
+      },
+    },
+    { index: 1, status: 'check', reasons: ['May sound more certain than the original ("about").'], repair: null },
+  ],
+  summary: { ok: 1, check: 1, problem: 0, repaired: 1 },
   judge: 'llm',
   cached: false,
 };

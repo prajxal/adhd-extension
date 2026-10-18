@@ -123,13 +123,15 @@ export function checkSummary(check: CheckState): string | null {
     case 'unavailable':
       return 'Meaning check unavailable';
     case 'done': {
-      const { problem, check: toCheck } = check.data.summary;
-      const text =
+      const { problem, check: toCheck, repaired } = check.data.summary;
+      const status =
         problem > 0
           ? `${plural(problem, 'sentence', 'sentences')} may have changed meaning`
           : toCheck > 0
             ? `${plural(toCheck, 'sentence', 'sentences')} to double-check`
             : '✓ Meaning check passed';
+      const text =
+        repaired > 0 ? `${plural(repaired, 'sentence', 'sentences')} fixed · ${status}` : status;
       return check.data.judge === 'rules' ? `${text} (basic check only)` : text;
     }
   }
@@ -191,6 +193,8 @@ function Result({ data, check }: { data: SimplifyResponse; check: CheckState }):
           const open = openSentence === i;
           const flag = checks.get(i);
           const flagged = isFlagged(flag) ? flag : null;
+          // An accepted repair replaces the text; its status describes the new text.
+          const repair = flag?.repair ?? null;
           return (
             <li key={i}>
               <button
@@ -202,6 +206,14 @@ function Result({ data, check }: { data: SimplifyResponse; check: CheckState }):
                   setOpenSentence(open ? null : i);
                 }}
               >
+                {repair && (
+                  <>
+                    <span className="rw-flag rw-flag-fixed" aria-hidden="true">
+                      ✎
+                    </span>
+                    <span className="rw-sr">Fixed: </span>
+                  </>
+                )}
                 {flagged && (
                   <>
                     <span className={`rw-flag rw-flag-${flagged.status}`} aria-hidden="true">
@@ -210,10 +222,22 @@ function Result({ data, check }: { data: SimplifyResponse; check: CheckState }):
                     <span className="rw-sr">{FLAG_LABEL[flagged.status]}: </span>
                   </>
                 )}
-                {sentence.text}
+                {repair ? repair.text : sentence.text}
               </button>
               {open && (
                 <div className="rw-sources" id={`rw-src-${i}`}>
+                  {repair && (
+                    <div className="rw-repair">
+                      <span className="rw-label">Fixed</span>
+                      <ul className="rw-fixed" aria-label="What was fixed">
+                        {repair.fixed.map((r) => (
+                          <li key={r}>{r}</li>
+                        ))}
+                      </ul>
+                      <span className="rw-label">Earlier version</span>
+                      <p className="rw-previous">{repair.previous}</p>
+                    </div>
+                  )}
                   {flagged && flagged.reasons.length > 0 && (
                     <ul className="rw-reasons" aria-label="Why this was flagged">
                       {flagged.reasons.map((r) => (

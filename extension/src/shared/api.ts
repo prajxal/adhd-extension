@@ -74,11 +74,19 @@ export function parseSimplifyResult(value: unknown): SimplifyResult | null {
 }
 
 export type CheckStatus = 'ok' | 'check' | 'problem';
-export type CheckSentence = { index: number; status: CheckStatus; reasons: string[] };
+/** An accepted auto-repair: `text` replaced `previous`, fixing the `fixed` reasons. */
+export type Repair = { text: string; previous: string; fixed: string[] };
+
+export type CheckSentence = {
+  index: number;
+  status: CheckStatus;
+  reasons: string[];
+  repair: Repair | null;
+};
 
 export type CheckResponse = {
   sentences: CheckSentence[];
-  summary: { ok: number; check: number; problem: number };
+  summary: { ok: number; check: number; problem: number; repaired: number };
   judge: 'llm' | 'rules';
   cached: boolean;
 };
@@ -90,29 +98,47 @@ export type CheckResult =
 
 const isStatus = (v: unknown): v is CheckStatus => v === 'ok' || v === 'check' || v === 'problem';
 
-const isCheckSentence = (v: unknown): v is CheckSentence =>
-  isRecord(v) && isNumber(v.index) && isStatus(v.status) && isArrayOf(v.reasons, isString);
+const isRepair = (v: unknown): v is Repair =>
+  isRecord(v) && isString(v.text) && isString(v.previous) && isArrayOf(v.fixed, isString);
+
+/** Older servers send no `repair` field; treat that the same as `null`. */
+function parseCheckSentence(v: unknown): CheckSentence | null {
+  if (!isRecord(v) || !isNumber(v.index) || !isStatus(v.status) || !isArrayOf(v.reasons, isString)) {
+    return null;
+  }
+  const repair = v.repair ?? null;
+  if (repair !== null && !isRepair(repair)) return null;
+  return { index: v.index, status: v.status, reasons: v.reasons, repair };
+}
 
 export function parseCheckResponse(value: unknown): CheckResponse | null {
   if (!isRecord(value)) return null;
   const { sentences, summary, judge, cached } = value;
   if (
-    isArrayOf(sentences, isCheckSentence) &&
-    isRecord(summary) &&
-    isNumber(summary.ok) &&
-    isNumber(summary.check) &&
-    isNumber(summary.problem) &&
-    (judge === 'llm' || judge === 'rules') &&
-    typeof cached === 'boolean'
+    !Array.isArray(sentences) ||
+    !isRecord(summary) ||
+    !isNumber(summary.ok) ||
+    !isNumber(summary.check) ||
+    !isNumber(summary.problem) ||
+    (summary.repaired !== undefined && !isNumber(summary.repaired)) ||
+    (judge !== 'llm' && judge !== 'rules') ||
+    typeof cached !== 'boolean'
   ) {
-    return {
-      sentences,
-      summary: { ok: summary.ok, check: summary.check, problem: summary.problem },
-      judge,
-      cached,
-    };
+    return null;
   }
-  return null;
+  const parsed = sentences.map(parseCheckSentence);
+  if (!parsed.every((s): s is CheckSentence => s !== null)) return null;
+  return {
+    sentences: parsed,
+    summary: {
+      ok: summary.ok,
+      check: summary.check,
+      problem: summary.problem,
+      repaired: typeof summary.repaired === 'number' ? summary.repaired : 0,
+    },
+    judge,
+    cached,
+  };
 }
 
 export function parseCheckResult(value: unknown): CheckResult | null {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseCheckResponse, parseCheckResult, parseSimplifyResponse, parseSimplifyResult } from '@/src/shared/api';
 import { requestCheck, requestSimplify } from '@/src/shared/simplifyClient';
-import { CHECK_FLAGGED, SAMPLE } from './fixtures';
+import { CHECK_FLAGGED, CHECK_REPAIRED, SAMPLE } from './fixtures';
 
 const SERVER = 'http://localhost:8000';
 
@@ -87,6 +87,33 @@ describe('check response parsing', () => {
     expect(parseCheckResponse({ ...CHECK_FLAGGED, sentences: [{ index: 0, status: 'bad', reasons: [] }] })).toBeNull();
     expect(parseCheckResult({ ok: false, reason: 'off' })).toEqual({ ok: false, reason: 'off' });
     expect(parseCheckResult({ ok: false, reason: 'nope' })).toBeNull();
+  });
+});
+
+describe('repair parsing', () => {
+  it('accepts repairs and fills in defaults for older servers', () => {
+    expect(parseCheckResponse(CHECK_REPAIRED)).toEqual(CHECK_REPAIRED);
+    const old = {
+      sentences: [{ index: 0, status: 'ok', reasons: [] }],
+      summary: { ok: 1, check: 0, problem: 0 },
+      judge: 'llm',
+      cached: false,
+    };
+    expect(parseCheckResponse(old)).toEqual({
+      ...old,
+      sentences: [{ index: 0, status: 'ok', reasons: [], repair: null }],
+      summary: { ok: 1, check: 0, problem: 0, repaired: 0 },
+    });
+  });
+
+  it('rejects a malformed repair', () => {
+    const bad = (repair: unknown): unknown => ({
+      ...CHECK_REPAIRED,
+      sentences: [{ index: 0, status: 'ok', reasons: [], repair }],
+    });
+    expect(parseCheckResponse(bad({ text: 'x', previous: 'y' }))).toBeNull();
+    expect(parseCheckResponse(bad({ text: 1, previous: 'y', fixed: [] }))).toBeNull();
+    expect(parseCheckResponse({ ...CHECK_REPAIRED, summary: { ...CHECK_REPAIRED.summary, repaired: 'one' } })).toBeNull();
   });
 });
 

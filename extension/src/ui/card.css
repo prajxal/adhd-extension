@@ -347,3 +347,25 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ---- Auto-repair ---- */
+.rw-flag-fixed {
+  color: var(--rw-ok);
+}
+
+.rw-repair {
+  margin-bottom: 8px;
+}
+
+.rw-fixed {
+  margin: 0 0 6px;
+  padding-left: 18px;
+  color: var(--rw-ok);
+}
+
+.rw-previous {
+  margin-bottom: 6px;
+  color: var(--rw-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
