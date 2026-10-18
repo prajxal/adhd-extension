@@ -1,0 +1,24 @@
+{
+  "kind": "pdf",
+  "name": "two-column.pdf",
+  "sections": [
+    {
+      "label": "Page 1",
+      "title": null,
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Two Column Layout"
+        },
+        {
+          "kind": "paragraph",
+          "text": "The left column starts here and keeps going for a few lines before it ends at the bottom of the column."
+        },
+        {
+          "kind": "paragraph",
+          "text": "The right column is read after the left one, even though its lines sit level with the left column lines."
+        }
+      ]
+    }
+  ]
+}

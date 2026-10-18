@@ -1,0 +1,38 @@
+{
+  "kind": "pdf",
+  "name": "one-column.pdf",
+  "sections": [
+    {
+      "label": "Page 1",
+      "title": null,
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Reading on Screens"
+        },
+        {
+          "kind": "paragraph",
+          "text": "People read differently on screens than on paper. Most readers scan the page instead of reading every word, which makes long sentences harder to understand and remember."
+        },
+        {
+          "kind": "paragraph",
+          "text": "Short paragraphs, clear headings and plain words all help. This paragraph continues on the next page without a full stop at the end of this line, so it should be joined with the text from the previous page."
+        }
+      ]
+    },
+    {
+      "label": "Page 2",
+      "title": null,
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Notes"
+        },
+        {
+          "kind": "paragraph",
+          "text": "Page numbers and the running header should not appear in the reading view."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 610 >>
+stream
+BT /F1 9 Tf 72 760 Td (Readwell test document) Tj ET
+BT /F1 18 Tf 72 700 Td (Reading on Screens) Tj ET
+BT /F1 11 Tf 72 670 Td (People read differently on screens than on paper. Most readers scan the) Tj ET
+BT /F1 11 Tf 72 655 Td (page instead of reading every word, which makes long sentences harder to under-) Tj ET
+BT /F1 11 Tf 72 640 Td (stand and remember.) Tj ET
+BT /F1 11 Tf 72 605 Td (Short paragraphs, clear headings and plain words all help. This paragraph) Tj ET
+BT /F1 11 Tf 72 590 Td (continues on the next page without a full stop at the end of this line, so) Tj ET
+BT /F1 9 Tf 300 40 Td (1) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 316 >>
+stream
+BT /F1 9 Tf 72 760 Td (Readwell test document) Tj ET
+BT /F1 11 Tf 72 700 Td (it should be joined with the text from the previous page.) Tj ET
+BT /F1 18 Tf 72 660 Td (Notes) Tj ET
+BT /F1 11 Tf 72 630 Td (Page numbers and the running header should not appear in the reading view.) Tj ET
+BT /F1 9 Tf 300 40 Td (2) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000879 00000 n 
+0000001005 00000 n 
+0000001372 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+1498
+%%EOF

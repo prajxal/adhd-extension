@@ -1,0 +1,89 @@
+{
+  "kind": "pptx",
+  "name": "sample-deck.pptx",
+  "sections": [
+    {
+      "label": "Slide 1",
+      "title": "Why plain language matters",
+      "blocks": [
+        {
+          "kind": "list",
+          "items": [
+            {
+              "text": "Long sentences are hard to follow",
+              "level": 0
+            },
+            {
+              "text": "Especially for readers with ADHD",
+              "level": 1
+            },
+            {
+              "text": "Short sentences help everyone",
+              "level": 0
+            }
+          ]
+        },
+        {
+          "kind": "notes",
+          "paragraphs": [
+            "Mention the 2023 survey results."
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Slide 2",
+      "title": "Survey results",
+      "blocks": [
+        {
+          "kind": "table",
+          "rows": [
+            [
+              "Group",
+              "Preferred plain text"
+            ],
+            [
+              "Adults",
+              "72%"
+            ],
+            [
+              "Teens",
+              "81%"
+            ]
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "text": "Source: Readwell reader survey, 2023."
+        }
+      ]
+    },
+    {
+      "label": "Slide 3",
+      "title": null,
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "text": "Next steps"
+        },
+        {
+          "kind": "paragraph",
+          "text": "Try the reader on your own slides."
+        },
+        {
+          "kind": "list",
+          "items": [
+            {
+              "text": "Open a .pptx file",
+              "level": 0
+            },
+            {
+              "text": "Turn on Bold-prefix",
+              "level": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
