@@ -120,6 +120,21 @@ type Doc = { kind: 'pdf' | 'pptx'; name: string; sections: Section[] };
 
 ---
 
+## Access model (changes a Phase 1 rule)
+
+Phase 1 ran the content script on `<all_urls>`. Chrome treats that as access to every site: the extension could fetch any site, and it shows a "read and change all your data on all websites" warning at install. Phase 3 replaces it with least-privilege access:
+
+| Situation | Access |
+|---|---|
+| A site the user turns on (popup) | Chrome asks once for that site. The content script is registered for it and injected into the open tab. Turning the site off removes the permission again. |
+| Right-click → **Simplify selection** on any site | `activeTab`, which gives temporary access to that tab on click. No standing permission. |
+| **Simplify button on every site** (opt-in switch in the popup) | Chrome's all-sites permission, requested only when the user switches this on. Reading modes still apply only on turned-on sites. |
+| The reader opening a link | Chrome asks for that link's site. |
+
+- Install-time host permissions: only the Readwell server (`http://localhost:8000/*`).
+- The content script is registered at runtime (`chrome.scripting`) and guards against being injected twice.
+- Automated tests use a separate build (`npm run build:e2e`, output in `.output-e2e/`, never shipped) that pre-grants access, because tests can't click Chrome's permission prompts.
+
 ## Fixtures
 
 `extension/scripts/make-doc-fixtures.mjs` writes these into `extension/tests/fixtures/docs/`, each with an `.expected.json`:
@@ -146,7 +161,8 @@ type Doc = { kind: 'pdf' | 'pptx'; name: string; sections: Section[] };
 - [ ] No repair is ever accepted if it adds a `problem`-level rule finding. A failed repair never turns a working `/check` into an error.
 - [ ] Each fixture parses exactly to its `.expected.json`.
 - [ ] In the reader, Bold-prefix, ruler, spacing, Simplify, the meaning check and auto-repair work, and the card is styled the same as on web pages.
-- [ ] Opening a document from a link asks for permission for that site only. Open file needs none. No `<all_urls>` host permission is added.
+- [ ] Opening a document from a link asks for permission for that site only. Open file needs none.
+- [ ] The release build has no install-time host permission besides the server, can't read other sites, and runs nowhere until the user allows a site (or opts in to every site).
 - [ ] PDF.js runs under the extension's default security policy, with no `unsafe-eval`. The PDF worker loads from the extension package.
 - [ ] Two real public PDFs and one real PPTX open with readable text, reported with screenshots.
 - [ ] Strict TypeScript with no `any`, ruff and all tests pass. No user text in logs.

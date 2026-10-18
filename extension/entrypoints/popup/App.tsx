@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react';
 import { readerPath } from '@/src/docs/open';
+import { ALL_SITES, injectInto, sitePattern, webHostname } from '@/src/shared/access';
 import type { ContentMessage } from '@/src/shared/messages';
 import {
   INTENSITY_MAX,
@@ -15,33 +16,25 @@ import {
   type SimplifyLevel,
 } from '@/src/shared/settings';
 
-type TabInfo = { tabId: number; hostname: string } | null;
+type TabInfo =
+  | { kind: 'site'; tabId: number; hostname: string }
+  | { kind: 'reader' }
+  | { kind: 'none' };
 
+/** Opening the popup grants activeTab, so the current tab's address is readable. */
 async function getActiveTab(): Promise<TabInfo> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id === undefined) return null;
-  const message: ContentMessage = { type: 'get-hostname' };
-  try {
-    const response: unknown = await browser.tabs.sendMessage(tab.id, message);
-    if (
-      typeof response === 'object' &&
-      response !== null &&
-      'hostname' in response &&
-      typeof response.hostname === 'string' &&
-      response.hostname !== ''
-    ) {
-      return { tabId: tab.id, hostname: response.hostname };
-    }
-  } catch {
-    // No content script on this page (e.g. chrome:// pages or the Web Store).
-  }
-  return null;
+  if (tab?.id === undefined) return { kind: 'none' };
+  if (tab.url?.startsWith(browser.runtime.getURL(readerPath()))) return { kind: 'reader' };
+  const hostname = webHostname(tab.url);
+  return hostname ? { kind: 'site', tabId: tab.id, hostname } : { kind: 'none' };
 }
 
 export function App(): ReactElement {
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [tab, setTab] = useState<TabInfo>(null);
+  const [tab, setTab] = useState<TabInfo>({ kind: 'none' });
   const [serverUrlDraft, setServerUrlDraft] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     void Promise.all([loadSettings(), getActiveTab()]).then(([s, t]) => {
@@ -53,28 +46,62 @@ export function App(): ReactElement {
 
   if (settings === null) return <main className="popup">Loading…</main>;
 
-  const update = (next: Settings): void => {
+  const update = async (next: Settings): Promise<void> => {
     const clean = normalizeSettings(next);
     setSettings(clean);
-    void saveSettings(clean);
-    if (tab !== null) {
+    await saveSettings(clean);
+    if (tab.kind === 'site') {
       const message: ContentMessage = { type: 'apply-settings', settings: clean };
       browser.tabs.sendMessage(tab.tabId, message).catch(() => {
-        // Tab went away or has no content script; storage still has the change.
+        // No content script in this tab; storage still has the change.
       });
     }
   };
 
-  const siteOn = tab !== null && isSiteEnabled(settings, tab.hostname);
+  const siteOn = tab.kind === 'site' && isSiteEnabled(settings, tab.hostname);
+
+  /** Turning a site on asks Chrome for that one site; turning it off gives the access back. */
+  const setSite = async (hostname: string, tabId: number, on: boolean): Promise<void> => {
+    setNotice(null);
+    if (on) {
+      // First await in the click handler: Chrome only prompts during a user gesture.
+      const granted = await browser.permissions.request({ origins: [sitePattern(hostname)] });
+      if (!granted) {
+        setNotice('Chrome didn’t allow Readwell on this site, so reading modes stay off.');
+        return;
+      }
+      await update(toggleSite(settings, hostname, true));
+      await injectInto(tabId); // apply now, without reloading the page
+    } else {
+      await update(toggleSite(settings, hostname, false));
+      await browser.permissions.remove({ origins: [sitePattern(hostname)] }).catch(() => false);
+    }
+  };
+
+  const setEverywhere = async (on: boolean): Promise<void> => {
+    setNotice(null);
+    if (on) {
+      const granted = await browser.permissions.request({ origins: ALL_SITES });
+      if (!granted) {
+        setNotice('Chrome didn’t allow access to all sites. Right-click → Simplify selection still works.');
+        return;
+      }
+      await update({ ...settings, simplifyEverywhere: true });
+      if (tab.kind === 'site') await injectInto(tab.tabId);
+    } else {
+      await update({ ...settings, simplifyEverywhere: false });
+      await browser.permissions.remove({ origins: ALL_SITES }).catch(() => false);
+    }
+  };
 
   return (
     <main className="popup">
       <h1>Readwell</h1>
 
       <section className="site">
-        {tab === null ? (
-          <p className="muted">Readwell can’t run on this page.</p>
-        ) : (
+        {tab.kind === 'none' && <p className="muted">Readwell can’t run on this page.</p>}
+        {tab.kind === 'reader' && <p className="muted">Reading modes apply in the reader automatically.</p>}
+        {tab.kind === 'site' && (
           <label className="row">
             <span>
               Turn on for this site
@@ -85,13 +112,18 @@ export function App(): ReactElement {
               role="switch"
               checked={siteOn}
               onChange={(e) => {
-                update(toggleSite(settings, tab.hostname, e.target.checked));
+                void setSite(tab.hostname, tab.tabId, e.target.checked);
               }}
             />
           </label>
         )}
-        {tab !== null && !siteOn && (
-          <p className="muted small">Reading modes only apply on sites you turn on.</p>
+        {tab.kind === 'site' && !siteOn && (
+          <p className="muted small">Reading modes only apply on sites you turn on. Chrome asks once per site.</p>
+        )}
+        {notice && (
+          <p className="notice small" role="status">
+            {notice}
+          </p>
         )}
       </section>
 
@@ -105,7 +137,7 @@ export function App(): ReactElement {
             role="switch"
             checked={settings.boldPrefix.enabled}
             onChange={(e) => {
-              update({ ...settings, boldPrefix: { ...settings.boldPrefix, enabled: e.target.checked } });
+              void update({ ...settings, boldPrefix: { ...settings.boldPrefix, enabled: e.target.checked } });
             }}
           />
         </label>
@@ -120,7 +152,7 @@ export function App(): ReactElement {
             step={0.05}
             value={settings.boldPrefix.intensity}
             onChange={(e) => {
-              update({
+              void update({
                 ...settings,
                 boldPrefix: { ...settings.boldPrefix, intensity: Number(e.target.value) },
               });
@@ -137,7 +169,7 @@ export function App(): ReactElement {
             role="switch"
             checked={settings.ruler.enabled}
             onChange={(e) => {
-              update({ ...settings, ruler: { ...settings.ruler, enabled: e.target.checked } });
+              void update({ ...settings, ruler: { ...settings.ruler, enabled: e.target.checked } });
             }}
           />
         </label>
@@ -152,7 +184,7 @@ export function App(): ReactElement {
             step={4}
             value={settings.ruler.height}
             onChange={(e) => {
-              update({ ...settings, ruler: { ...settings.ruler, height: Number(e.target.value) } });
+              void update({ ...settings, ruler: { ...settings.ruler, height: Number(e.target.value) } });
             }}
           />
         </label>
@@ -164,7 +196,7 @@ export function App(): ReactElement {
             role="switch"
             checked={settings.spacing.enabled}
             onChange={(e) => {
-              update({ ...settings, spacing: { enabled: e.target.checked } });
+              void update({ ...settings, spacing: { enabled: e.target.checked } });
             }}
           />
         </label>
@@ -180,13 +212,31 @@ export function App(): ReactElement {
                 name="level"
                 checked={settings.simplifyLevel === level}
                 onChange={() => {
-                  update({ ...settings, simplifyLevel: level });
+                  void update({ ...settings, simplifyLevel: level });
                 }}
               />
               <span>{level === 1 ? '1 Light' : level === 2 ? '2 Plain' : '3 Simplest'}</span>
             </label>
           ))}
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Simplify</legend>
+        <label className="row">
+          <span>
+            Simplify button on every site
+            <span className="muted block">Off: right-click → Simplify selection works anywhere.</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={settings.simplifyEverywhere}
+            onChange={(e) => {
+              void setEverywhere(e.target.checked);
+            }}
+          />
+        </label>
       </fieldset>
 
       <fieldset>
@@ -208,7 +258,7 @@ export function App(): ReactElement {
           className="server"
           onSubmit={(e) => {
             e.preventDefault();
-            update({ ...settings, serverUrl: serverUrlDraft });
+            void update({ ...settings, serverUrl: serverUrlDraft });
           }}
         >
           <input
@@ -219,7 +269,7 @@ export function App(): ReactElement {
               setServerUrlDraft(e.target.value);
             }}
             onBlur={() => {
-              update({ ...settings, serverUrl: serverUrlDraft });
+              void update({ ...settings, serverUrl: serverUrlDraft });
             }}
           />
         </form>

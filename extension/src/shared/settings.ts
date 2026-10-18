@@ -10,6 +10,8 @@ export type Settings = {
   serverUrl: string;
   enabledSites: string[]; // hostnames where visual modes auto-apply
   privacyNoticeAccepted: boolean;
+  /** Opt-in: show the Simplify button on every site (needs Chrome's all-sites permission). */
+  simplifyEverywhere: boolean;
 };
 
 export const SETTINGS_KEY = 'settings';
@@ -27,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   serverUrl: 'http://localhost:8000',
   enabledSites: [],
   privacyNoticeAccepted: false,
+  simplifyEverywhere: false,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -76,6 +79,7 @@ export function normalizeSettings(raw: unknown): Settings {
       ? [...new Set(src.enabledSites.filter((s): s is string => typeof s === 'string' && s !== ''))]
       : [],
     privacyNoticeAccepted: readBoolean(src.privacyNoticeAccepted, d.privacyNoticeAccepted),
+    simplifyEverywhere: readBoolean(src.simplifyEverywhere, d.simplifyEverywhere),
   };
 }
 

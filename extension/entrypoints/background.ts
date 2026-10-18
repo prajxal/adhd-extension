@@ -1,7 +1,8 @@
 import type { CheckResult, SimplifyResult } from '@/src/shared/api';
 import { isOpenableUrl, readerPath } from '@/src/docs/open';
 import { isBackgroundMessage, type BackgroundMessage, type ContentMessage } from '@/src/shared/messages';
-import { loadSettings } from '@/src/shared/settings';
+import { injectInto, syncContentScripts } from '@/src/shared/access';
+import { loadSettings, onSettingsChanged } from '@/src/shared/settings';
 import { requestCheck, requestSimplify } from '@/src/shared/simplifyClient';
 
 const MENU_ID = 'rw-simplify-selection';
@@ -16,8 +17,19 @@ async function handle(message: BackgroundMessage): Promise<SimplifyResult | Chec
     : requestCheck(serverUrl, message.text, message.level);
 }
 
+async function resync(): Promise<void> {
+  await syncContentScripts(await loadSettings());
+}
+
 export default defineBackground(() => {
+  // Keep the content script registered exactly where the user has allowed it.
+  browser.runtime.onStartup.addListener(() => void resync());
+  browser.permissions.onAdded.addListener(() => void resync());
+  browser.permissions.onRemoved.addListener(() => void resync());
+  onSettingsChanged((settings) => void syncContentScripts(settings));
+
   browser.runtime.onInstalled.addListener(() => {
+    void resync();
     void browser.contextMenus.removeAll().then(() => {
       browser.contextMenus.create({
         id: MENU_ID,
@@ -48,8 +60,12 @@ export default defineBackground(() => {
       void browser.runtime.sendMessage(message);
       return;
     }
-    browser.tabs.sendMessage(tab.id, message, { frameId: 0 }).catch(() => {
-      // No content script on this page (e.g. chrome:// or the Web Store).
+    // Clicking the menu grants activeTab, so we can inject into this tab even if the site
+    // isn't turned on.
+    const tabId = tab.id;
+    void injectInto(tabId).then((ok) => {
+      if (!ok) return; // chrome:// pages, the Web Store, …
+      browser.tabs.sendMessage(tabId, message, { frameId: 0 }).catch(() => undefined);
     });
   });
 

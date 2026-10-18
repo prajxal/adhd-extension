@@ -4,10 +4,20 @@ import { isContentMessage } from '@/src/shared/messages';
 import { isSiteEnabled, loadSettings, onSettingsChanged, type Settings } from '@/src/shared/settings';
 import { attachSimplify } from '@/src/ui/attachSimplify';
 
+const LOADED = '__readwellContentScript';
+
 export default defineContentScript({
-  matches: ['<all_urls>'],
+  // Registered at runtime (see src/shared/access.ts) only for sites the user allowed,
+  // or injected into one tab via activeTab. No static match patterns.
+  registration: 'runtime',
+  matches: [],
   runAt: 'document_idle',
   main() {
+    // The popup or the context menu may inject us into a tab that already has us.
+    const scope = globalThis as unknown as Record<string, boolean | undefined>;
+    if (scope[LOADED]) return;
+    scope[LOADED] = true;
+
     const hostname = window.location.hostname;
     const modes = new VisualModes(hostname);
     let current: Settings | null = null;

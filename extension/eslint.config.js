@@ -1,7 +1,7 @@
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['.output/**', '.wxt/**', 'node_modules/**', 'eslint.config.js', 'scripts/**'] },
+  { ignores: ['.output/**', '.output-e2e/**', '.wxt/**', 'node_modules/**', 'eslint.config.js', 'scripts/**'] },
   ...tseslint.configs.strictTypeChecked,
   {
     languageOptions: {
