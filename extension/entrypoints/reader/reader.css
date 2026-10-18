@@ -252,3 +252,29 @@ button {
     padding: 20px 14px 80px;
   }
 }
+
+/* ---- Show original (PDF pages) ---- */
+.rw-original {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.rw-page {
+  margin: 0 0 24px;
+}
+
+.rw-page canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.rw-page figcaption {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+}

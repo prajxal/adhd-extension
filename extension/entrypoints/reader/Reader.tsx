@@ -10,8 +10,10 @@ import {
   openDocument,
   originPattern,
 } from '@/src/docs/open';
+import { parsePdfBytes } from '@/src/docs/pdfLoad';
 import { VisualModes } from '@/src/modes/visualModes';
 import { loadSettings, onSettingsChanged, type Settings } from '@/src/shared/settings';
+import { OriginalPages } from './OriginalPages';
 
 /** Stands in for a hostname so the reader always counts as a "turned on" site. */
 const READER_SITE = 'readwell-reader';
@@ -21,7 +23,7 @@ type View =
   | { kind: 'ask'; url: string; name: string; host: string }
   | { kind: 'loading'; name: string }
   | { kind: 'error'; message: string }
-  | { kind: 'doc'; doc: Doc };
+  | { kind: 'doc'; doc: Doc; bytes: Uint8Array };
 
 function readerSettings(settings: Settings): Settings {
   return { ...settings, enabledSites: [...settings.enabledSites, READER_SITE] };
@@ -34,6 +36,7 @@ export function Reader({ src }: { src: string | null }): ReactElement {
     return { kind: 'ask', url: src, name: nameFromUrl(src), host: new URL(src).host };
   });
   const [dragging, setDragging] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,8 +55,11 @@ export function Reader({ src }: { src: string | null }): ReactElement {
 
   const show = useCallback(async (bytes: Uint8Array, name: string) => {
     setView({ kind: 'loading', name });
-    const result = await openDocument(bytes, name);
-    setView(isOpenError(result) ? { kind: 'error', message: ERROR_MESSAGES[result.error] } : { kind: 'doc', doc: result });
+    setShowOriginal(false);
+    const result = await openDocument(bytes, name, parsePdfBytes);
+    setView(
+      isOpenError(result) ? { kind: 'error', message: ERROR_MESSAGES[result.error] } : { kind: 'doc', doc: result, bytes },
+    );
   }, []);
 
   const openFile = useCallback(
@@ -114,6 +120,18 @@ export function Reader({ src }: { src: string | null }): ReactElement {
       <header className="rw-bar">
         <span className="rw-brand">Readwell</span>
         <span className="rw-bar-name">{view.kind === 'doc' ? view.doc.name : 'Reader'}</span>
+        {view.kind === 'doc' && view.doc.kind === 'pdf' && (
+          <button
+            type="button"
+            className="rw-button-secondary"
+            aria-pressed={showOriginal}
+            onClick={() => {
+              setShowOriginal(!showOriginal);
+            }}
+          >
+            {showOriginal ? 'Reading view' : 'Show original'}
+          </button>
+        )}
         <button type="button" className="rw-button-secondary" onClick={chooseFile}>
           Open file…
         </button>
@@ -183,9 +201,10 @@ export function Reader({ src }: { src: string | null }): ReactElement {
             </button>
           </div>
         )}
-        <article ref={articleRef} className="rw-doc" hidden={view.kind !== 'doc'}>
+        <article ref={articleRef} className="rw-doc" hidden={view.kind !== 'doc' || showOriginal}>
           {view.kind === 'doc' && <DocView doc={view.doc} />}
         </article>
+        {view.kind === 'doc' && showOriginal && <OriginalPages bytes={view.bytes} />}
       </main>
       {dragging && <div className="rw-drop">Drop to open</div>}
     </div>

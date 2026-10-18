@@ -1,4 +1,11 @@
+import { readdirSync } from 'node:fs';
+import path from 'node:path';
 import { defineConfig } from 'wxt';
+
+const PDFJS = path.resolve('node_modules/pdfjs-dist');
+// PDF.js worker, standard fonts, character maps, colour profiles and image decoders,
+// packaged under /pdfjs/ so the reader never loads code or data from the network.
+const PDFJS_DIRS = ['standard_fonts', 'cmaps', 'iccs', 'wasm'];
 
 // Test-only build for automated browser tests, which can't click Chrome's permission
 // prompts: pre-grants all sites and builds into .output-e2e so it can't be shipped by mistake.
@@ -7,6 +14,16 @@ const E2E = process.env.READWELL_E2E === '1';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   outDir: E2E ? '.output-e2e' : '.output',
+  hooks: {
+    'build:publicAssets': (_wxt, files) => {
+      files.push({ absoluteSrc: path.join(PDFJS, 'build/pdf.worker.min.mjs'), relativeDest: 'pdfjs/pdf.worker.min.mjs' });
+      for (const dir of PDFJS_DIRS) {
+        for (const file of readdirSync(path.join(PDFJS, dir))) {
+          files.push({ absoluteSrc: path.join(PDFJS, dir, file), relativeDest: `pdfjs/${dir}/${file}` });
+        }
+      }
+    },
+  },
   manifest: {
     name: 'Readwell',
     description: 'Makes web text easier to read: bold-prefix, reading ruler, spacing and plain-language simplify.',

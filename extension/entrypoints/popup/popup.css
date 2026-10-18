@@ -137,3 +137,10 @@ input[type='url'] {
     color: #ffc874;
   }
 }
+
+.open-pdf {
+  margin-bottom: 8px;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}

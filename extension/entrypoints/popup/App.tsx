@@ -17,17 +17,31 @@ import {
 } from '@/src/shared/settings';
 
 type TabInfo =
-  | { kind: 'site'; tabId: number; hostname: string }
+  | { kind: 'site'; tabId: number; hostname: string; url: string; isPdf: boolean }
   | { kind: 'reader' }
+  | { kind: 'local-pdf' }
   | { kind: 'none' };
+
+/** A PDF tab: the address ends in .pdf, or the page says it's a PDF (checked via activeTab). */
+async function isPdfTab(tabId: number, url: string): Promise<boolean> {
+  if (/\.pdf$/i.test(new URL(url).pathname)) return true;
+  try {
+    const [result] = await browser.scripting.executeScript({ target: { tabId }, func: () => document.contentType });
+    return result?.result === 'application/pdf';
+  } catch {
+    return false;
+  }
+}
 
 /** Opening the popup grants activeTab, so the current tab's address is readable. */
 async function getActiveTab(): Promise<TabInfo> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   if (tab?.id === undefined) return { kind: 'none' };
   if (tab.url?.startsWith(browser.runtime.getURL(readerPath()))) return { kind: 'reader' };
+  if (tab.url?.startsWith('file:') && /\.pdf$/i.test(tab.url)) return { kind: 'local-pdf' };
   const hostname = webHostname(tab.url);
-  return hostname ? { kind: 'site', tabId: tab.id, hostname } : { kind: 'none' };
+  if (!hostname || !tab.url) return { kind: 'none' };
+  return { kind: 'site', tabId: tab.id, hostname, url: tab.url, isPdf: await isPdfTab(tab.id, tab.url) };
 }
 
 export function App(): ReactElement {
@@ -100,6 +114,20 @@ export function App(): ReactElement {
 
       <section className="site">
         {tab.kind === 'none' && <p className="muted">Readwell can’t run on this page.</p>}
+        {tab.kind === 'local-pdf' && (
+          <p className="muted">To read a PDF from your computer, use “Open a PDF or PowerPoint file…” below.</p>
+        )}
+        {tab.kind === 'site' && tab.isPdf && (
+          <button
+            type="button"
+            className="open-file open-pdf"
+            onClick={() => {
+              void browser.tabs.create({ url: browser.runtime.getURL(readerPath(tab.url)) });
+            }}
+          >
+            Open this PDF in Readwell
+          </button>
+        )}
         {tab.kind === 'reader' && <p className="muted">Reading modes apply in the reader automatically.</p>}
         {tab.kind === 'site' && (
           <label className="row">
