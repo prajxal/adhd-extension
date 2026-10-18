@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from app.schemas import OriginalSentence, SimplifiedSentence
-from app.validation import numbers_in
+from app.validation import normalise_numbers, numbers_in
 
 Rule = Literal["number", "negation", "hedge", "name"]
 Severity = Literal["problem", "check"]
@@ -101,7 +101,8 @@ def _hedges(text: str) -> list[str]:
 
 def _contains_number(text: str, number: str) -> bool:
     # Whole numbers only: "5" must not match inside "15" or "5.5".
-    return re.search(rf"(?<![\d.,]){re.escape(number)}(?!\d|[.,]\d)", text) is not None
+    pattern = rf"(?<![\d.,]){re.escape(number)}(?!\d|[.,]\d)"
+    return re.search(pattern, normalise_numbers(text)) is not None
 
 
 def _quote(items: list[str]) -> str:

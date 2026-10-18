@@ -37,11 +37,14 @@ def make_client(tmp_path: Path) -> MakeClient:
         responses: list[Any] | None = None,
         limiter: RateLimiter | None = None,
         mode: MeaningCheckMode = "llm",
+        repair: bool = True,
     ) -> tuple[TestClient, FakeProvider]:
         provider = FakeProvider(responses if responses is not None else [GOOD])
         path = str(tmp_path / "cache.sqlite3")
         service = SimplifyService(provider, ResponseCache(path), model="fake-model")
-        checker = CheckService(service, provider, ResponseCache(path, table="check_cache"), mode)
+        checker = CheckService(
+            service, provider, ResponseCache(path, table="check_cache"), mode, repair=repair
+        )
         app = create_app(service=service, limiter=limiter, check_service=checker)
         return TestClient(app), provider
 

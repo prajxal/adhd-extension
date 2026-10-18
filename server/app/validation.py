@@ -13,9 +13,17 @@ CITATION_RE = re.compile(
 )
 
 
+PERCENT_WORD_RE = re.compile(r"(\d)\s*(?:per\s?cent|percent)\b", re.IGNORECASE)
+
+
+def normalise_numbers(text: str) -> str:
+    """Drops citation markers and writes "12.5 percent" / "per cent" as "12.5%"."""
+    return PERCENT_WORD_RE.sub(r"\1%", CITATION_RE.sub(" ", text))
+
+
 def numbers_in(text: str) -> list[str]:
     """Numbers in the text, ignoring citation markers."""
-    return NUMBER_RE.findall(CITATION_RE.sub(" ", text))
+    return NUMBER_RE.findall(normalise_numbers(text))
 
 
 def check_source_ids(
@@ -76,5 +84,5 @@ def check_numbers(original_text: str, simplified_text: str) -> list[str]:
     return [
         f'A number from the original may be missing: "{n}".'
         for n in numbers
-        if not _contains_number(simplified_text, n)
+        if not _contains_number(normalise_numbers(simplified_text), n)
     ]

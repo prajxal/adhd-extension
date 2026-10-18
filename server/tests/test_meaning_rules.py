@@ -51,6 +51,11 @@ def test_number_inside_a_bigger_number_does_not_count() -> None:
     assert rules(findings) == {"number"}
 
 
+def test_percent_word_matches_percent_sign() -> None:
+    [findings] = run(["Attendance fell by 12.5%."], ("Attendance went down by 12.5 percent.", [1]))
+    assert "number" not in rules(findings)
+
+
 def test_citation_markers_are_not_numbers() -> None:
     [findings] = run(
         ["ADHD[1] is a neurodevelopmental disorder.[8]"], ("ADHD is a brain disorder.", [1])

@@ -64,16 +64,26 @@ class SimplifyResponse(BaseModel):
 Status = Literal["ok", "check", "problem"]
 
 
+class Repair(BaseModel):
+    """An accepted auto-repair. The sentence's status/reasons describe `text`."""
+
+    text: str
+    previous: str
+    fixed: list[str]
+
+
 class CheckSentence(BaseModel):
     index: int
     status: Status
     reasons: list[str]
+    repair: Repair | None = None
 
 
 class CheckSummary(BaseModel):
     ok: int
     check: int
     problem: int
+    repaired: int = 0
 
 
 class CheckResponse(BaseModel):

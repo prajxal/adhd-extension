@@ -4,6 +4,7 @@ from typing import Any
 
 from app.llm.base import T
 from app.meaning.judge import JudgeOutput
+from app.meaning.repair import RepairOutput
 
 SENTENCE_LINE = re.compile(r"^\[(\d+)\] (.*)$")
 SIMPLIFIED_LINE = re.compile(r"^\((\d+)\) ")
@@ -26,6 +27,8 @@ class FakeProvider:
         if not self._responses:
             if schema is JudgeOutput:
                 return schema.model_validate(self._all_faithful(user))
+            if schema is RepairOutput:
+                return schema.model_validate({"repairs": []})
             return schema.model_validate(self._echo(user))
         index = min(len(self.calls), len(self._responses)) - 1
         item = self._responses[index]

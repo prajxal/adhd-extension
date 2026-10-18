@@ -61,6 +61,7 @@ def create_app(
                     provider,
                     ResponseCache(settings.cache_path, table="check_cache"),
                     settings.meaning_check,
+                    repair=settings.meaning_repair == "on",
                 )
                 service_holder.append((simplifier, checker))
             return service_holder[0]

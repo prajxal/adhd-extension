@@ -66,6 +66,12 @@ def test_numbers_ignore_citation_markers() -> None:
     ]
 
 
+def test_percent_written_as_a_word_counts_as_the_number() -> None:
+    assert check_numbers("Turnout fell by 12.5%.", "Turnout fell by 12.5 percent.") == []
+    assert check_numbers("Costs rose 7 per cent.", "Costs rose by 7%.") == []
+    assert check_numbers("Turnout fell by 12.5%.", "Turnout fell by 12.5 points.") != []
+
+
 def test_rate_limiter_window_slides() -> None:
     now = [0.0]
     limiter = RateLimiter(limit=2, window_s=60, clock=lambda: now[0])

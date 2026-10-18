@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     cache_path: str = "cache.sqlite3"
     # Phase 2 meaning check: LLM judge + rules, rules only, or turned off.
     meaning_check: Literal["llm", "rules", "off"] = "llm"
+    # Phase 3 auto-repair of `problem` sentences (only when meaning_check is "llm").
+    meaning_repair: Literal["on", "off"] = "on"
 
     @property
     def model_chain(self) -> list[str]:

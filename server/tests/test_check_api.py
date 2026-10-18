@@ -48,7 +48,7 @@ def test_all_faithful(make_client: MakeClient) -> None:
     assert response.status_code == 200
     assert body["judge"] == "llm"
     assert body["cached"] is False
-    assert body["summary"] == {"ok": 3, "check": 0, "problem": 0}
+    assert body["summary"] == {"ok": 3, "check": 0, "problem": 0, "repaired": 0}
     assert [s["status"] for s in body["sentences"]] == ["ok", "ok", "ok"]
     assert [s["index"] for s in body["sentences"]] == [0, 1, 2]
     assert provider.calls[1][0] == JUDGE_SYSTEM_PROMPT  # second LLM call is the judge
@@ -78,7 +78,7 @@ def test_minor_omission_is_a_check_on_the_mapped_sentence(make_client: MakeClien
     body = response.json()
     assert body["sentences"][2]["status"] == "check"
     assert body["sentences"][2]["reasons"] == ["Drops 'the reason for the delay'"]
-    assert body["summary"] == {"ok": 2, "check": 1, "problem": 0}
+    assert body["summary"] == {"ok": 2, "check": 1, "problem": 0, "repaired": 0}
 
 
 def test_invalid_judge_output_falls_back_to_rules_and_is_not_cached(
@@ -86,7 +86,7 @@ def test_invalid_judge_output_falls_back_to_rules_and_is_not_cached(
 ) -> None:
     client, provider, response = simplify_then_check(make_client, GOOD, "{oops")
     assert response.json()["judge"] == "rules"
-    assert response.json()["summary"] == {"ok": 3, "check": 0, "problem": 0}
+    assert response.json()["summary"] == {"ok": 3, "check": 0, "problem": 0, "repaired": 0}
     calls = len(provider.calls)
     again = client.post("/check", json={"text": TEXT, "level": 2}).json()
     assert again["cached"] is False  # the judge is tried again next time
