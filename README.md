@@ -7,6 +7,7 @@ A Chrome extension that makes web text easier to read for people who find long s
   - **Reading ruler** keeps a clear band at the mouse and dims the rest of the page (Alt+R toggles it).
   - **Spacing** adds line, word and letter spacing.
 - **Simplify on selection:** select text and click **Simplify** (or right-click → *Simplify selection*). You get a plain-language rewrite where every sentence links back to the original, a one-line TL;DR, and a short glossary of hard words.
+- **Meaning check:** after each Simplify, the card checks whether every simplified sentence still says what the original said, and flags the ones to double-check.
 
 ```
 /extension   WXT (Manifest V3) + React + TypeScript (strict)
@@ -42,6 +43,7 @@ Check it: `curl localhost:8000/health` should return `{"ok":true}`.
 | `LLM_TIMEOUT_S` | Seconds to wait for each model before moving to the next (default `30`) |
 | `GEMINI_API_KEY` | Your key from Google AI Studio |
 | `CACHE_PATH` | SQLite cache file (default `cache.sqlite3`) |
+| `MEANING_CHECK` | `llm` (rules plus an AI judge, the default), `rules` (no extra AI call) or `off` (the card hides the check) |
 
 `.env` is git-ignored. Never put a real key in `.env.example`.
 
@@ -52,6 +54,12 @@ Check it: `curl localhost:8000/health` should return `{"ok":true}`.
 ```bash
 ruff check . && ruff format --check .
 pytest
+```
+
+To score the meaning check against real models on the labelled test set (4 AI calls per model):
+
+```bash
+PYTHONPATH=. python scripts/eval_meaning.py gemini-3.6-flash gemini-3.5-flash-lite
 ```
 
 ---
@@ -109,8 +117,10 @@ Open any article on <https://www.bbc.com/news>.
    - the reading grade before and after, e.g. "Grade 14 → Grade 7"
    - the simplified sentences: click one to see the original sentence it came from, highlighted
    - glossary chips: click one to see its definition
-4. Click **3** in the level switcher to get the simplest version. Press **Escape** to close the card.
-5. Select a whole article (more than about 3,000 characters). You'll see "Select a shorter passage (max ~3000 characters)".
+   - a meaning-check line under the grade: "Checking meaning…", then "✓ Meaning check passed" or "1 sentence may have changed meaning"
+4. If a sentence has a ⚠ or • marker, click it. The reasons appear above the highlighted original, for example `Negation may be lost (original says "not").`
+5. Click **3** in the level switcher to get the simplest version. Press **Escape** to close the card.
+6. Select a whole article (more than about 3,000 characters). You'll see "Select a shorter passage (max ~3000 characters)".
 
 ### Page 3: GitHub, editors and the context menu
 Open <https://github.com/microsoft/TypeScript/blob/main/README.md>.
@@ -128,10 +138,12 @@ popup ──storage.sync──► content script ──► visual modes (local o
    select text / menu ──────┤
                             ▼
                      background worker ──POST /simplify──► server ──► Gemini (+ fallbacks)
-                            ▲                                │
-                            └──────── result ◄───────────────┘
+                            ▲          POST /check ─────────►  │     (rules + AI judge)
+                            └──────── result, then check ◄─────┘
                      content script ──► result card (Shadow DOM)
 ```
+
+`/check` runs automatically right after a successful `/simplify`, for the same text and level. It's part of the same click, so no text is sent without an explicit action. The server checks its own cached simplification and never accepts simplified text from the extension.
 
 How the server handles a request:
 1. Split the text into sentences.
@@ -149,13 +161,54 @@ Server logs record only the length and a hash of user text, never the text itsel
 
 ---
 
-## 5. Known limitations
+## 5. The meaning check
+
+Each simplified sentence is compared with the original sentence(s) it came from, in two layers:
+
+1. **Rules**, fast and with no AI:
+   - numbers that changed, appeared or disappeared (citation markers like `[1]` are ignored)
+   - negation lost or added ("not", "never", "unless", "can't"…). Words with a negative meaning, such as "refused" or "insufficient", count as negation too.
+   - hedging lost ("may", "probably", "about"…)
+   - capitalised names that aren't in the original
+2. **An AI judge** (with `MEANING_CHECK=llm`) reads the whole passage. It labels each simplified sentence `faithful`, `changed` or `added`, and reports important details that every sentence dropped (conditions, limits, qualifiers).
+
+Each sentence gets one status:
+
+| Status | Shown as | When |
+|---|---|---|
+| `problem` | ⚠ "may have changed meaning" | The judge says *changed* or *added*, or the number or negation rule fires |
+| `check` | • "to double-check" | The judge reports a minor loss, or only the hedging or name rule fires |
+| `ok` | no marker | Neither layer found anything |
+
+If the judge is unavailable (quota, timeouts), the rules still run and the card says "(basic check only)".
+
+**How well it works.** On 40 hand-labelled cases in `server/tests/fixtures/meaning_eval.json` (15 faithful rewrites and 25 with one deliberate error):
+
+| Checker | Errors caught | Faithful rewrites wrongly flagged |
+|---|---|---|
+| Rules only | 19/25 (76%) | 0/15 |
+| Rules + judge (`gemini-3.5-flash-lite`) | 24/25 (96%) | 1/15 (7%) |
+
+**What it doesn't guarantee:**
+- It's a second opinion, not proof. The judge is an AI model too and can miss errors or flag faithful sentences.
+- A ✓ means nothing was found, not that the rewrite is perfect. For anything important (medical, legal, financial), read the original.
+- The rules are English-only.
+- Known rule blind spots:
+  - double negatives ("not unreasonable" → "reasonable" gets flagged)
+  - dropped "only if" conditions without a number or negation (left to the judge)
+  - lowercase name changes
+- The scores above come from a small test set and one model. Rerun `scripts/eval_meaning.py` after changing models.
+
+---
+
+## 6. Known limitations
 
 - **Pages that rewrite their own text.** Bold-prefix wraps text in `<span>` elements. A framework such as React that later tries to update one of those text nodes can lose the update or log an error. Turning the mode off restores the page's latest text.
 - **Iframes, shadow DOM and PDFs.** Bold-prefix and Simplify only work in the top-level page, not inside iframes, other sites' shadow DOM or the PDF viewer.
 - **Styled `<span>` elements.** A site with broad CSS rules for `span` elements (for example `article span { display: block }`) can change how bold-prefixed text is laid out.
 - **Keyboard-only Simplify.** The floating button is for mouse users. With the keyboard, select text and use the context menu (Shift+F10 or the Menu key) → *Simplify selection*. Everything inside the card works with the keyboard.
-- **Simplification quality.** Only the cheap checks above are applied, not a full check that the meaning is preserved, so read the warnings. Citation markers such as `[1]` are sent along with the text.
+- **Simplification quality.** The meaning check catches most errors, but not all (see section 5). Citation markers such as `[1]` are still sent to the AI along with the text.
+- **The meaning check needs a second AI call.** That roughly doubles the AI requests per Simplify (repeats come from the cache). On a tight free-tier quota, set `MEANING_CHECK=rules`.
 - **The AI provider can be slow or rationed.** Free-tier Gemini keys have daily per-model caps and models can be overloaded, so a request may take up to about a minute or fail with "The AI service is busy or out of quota". Repeating the same request is served from the cache in a few milliseconds.
 - **Rate limit:** 30 requests per minute per IP, held in memory, so it resets when the server restarts and isn't shared between server processes.
 - **Chrome only.** No Firefox or Safari, no accounts and no deployment setup yet.

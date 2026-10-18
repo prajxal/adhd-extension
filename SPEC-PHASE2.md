@@ -114,7 +114,7 @@ Response:
 
 `server/tests/fixtures/meaning_eval.json` holds about 40 hand-labelled cases. Each is `{id, source[], simplified, label: "faithful"|"error", error_type, note}`: about 15 faithful paraphrases (some deliberately tricky for the rules) and about 25 cases with one injected error, covering every error type.
 
-`.verify/eval_meaning.py` (opt-in, uses real models) prints precision, recall and false-flag rate for rules only, judge only and both combined, per model.
+`server/scripts/eval_meaning.py` (opt-in, uses real models) prints precision, recall and false-flag rate for rules only, judge only and both combined, per model.
 
 **Targets for the combined check,** counting `check` or `problem` as a flag:
 - **Recall ≥ 85%** on error cases
