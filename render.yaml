@@ -1,0 +1,43 @@
+# Render Blueprint: New → Blueprint → pick this repo. Secrets (sync: false) are entered
+# in the Render dashboard and never stored here.
+services:
+  - type: web
+    name: readwell-server
+    runtime: docker
+    rootDir: server
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: LLM_MODEL
+        value: gemini-3.6-flash
+      - key: LLM_FALLBACK_MODELS
+        value: gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.7-flash
+      - key: LLM_TIMEOUT_S
+        value: "30"
+      - key: MEANING_CHECK
+        value: llm
+      - key: MEANING_REPAIR
+        value: "on"
+      - key: CACHE_PATH
+        value: /tmp/readwell-cache.sqlite3
+      - key: CACHE_TTL_HOURS
+        value: "24"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "20"
+      - key: RATE_LIMIT_PER_DAY
+        value: "200"
+      - key: DAILY_AI_CALL_LIMIT
+        value: "500"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ALLOWED_EXTENSION_IDS
+        sync: false
+      - key: PRIVACY_CONTACT
+        sync: false

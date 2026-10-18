@@ -19,6 +19,35 @@ class Settings(BaseSettings):
     # Phase 3 auto-repair of `problem` sentences (only when meaning_check is "llm").
     meaning_repair: Literal["on", "off"] = "on"
 
+    # Phase 4: production hardening. Unset limits take the defaults for APP_ENV.
+    app_env: Literal["development", "production"] = "development"
+    allowed_extension_ids: str = ""  # comma-separated Chrome extension IDs (production CORS)
+    rate_limit_per_minute: int | None = None
+    rate_limit_per_day: int | None = None
+    daily_ai_call_limit: int | None = None
+    cache_ttl_hours: float = 24.0
+    privacy_contact: str = ""
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env == "production"
+
+    @property
+    def extension_ids(self) -> list[str]:
+        return [i.strip() for i in self.allowed_extension_ids.split(",") if i.strip()]
+
+    @property
+    def per_minute(self) -> int:
+        return self.rate_limit_per_minute or (20 if self.is_production else 30)
+
+    @property
+    def per_day(self) -> int | None:
+        return self.rate_limit_per_day or (200 if self.is_production else None)
+
+    @property
+    def ai_calls_per_day(self) -> int | None:
+        return self.daily_ai_call_limit or (500 if self.is_production else None)
+
     @property
     def model_chain(self) -> list[str]:
         """Main model first, then fallbacks; blanks and duplicates removed."""

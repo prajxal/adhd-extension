@@ -2,7 +2,7 @@ import threading
 import time
 from collections.abc import Callable
 
-from app.llm.base import LLMProvider, LLMProviderError, T
+from app.llm.base import DailyLimitError, LLMProvider, LLMProviderError, T
 from app.logging_utils import logger
 
 COOLDOWN_S = 60.0
@@ -46,6 +46,8 @@ class FallbackProvider:
         for name, provider in self._order():
             try:
                 result = provider.generate_json(system, user, schema)
+            except DailyLimitError:
+                raise  # the whole server is out of budget: other models won't help
             except LLMProviderError as exc:
                 logger.warning("model %s failed (%s); trying next", name, exc)
                 with self._lock:
