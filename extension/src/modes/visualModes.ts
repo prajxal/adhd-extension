@@ -18,8 +18,9 @@ export class VisualModes {
   constructor(
     private readonly hostname: string,
     private readonly doc: Document = document,
+    root?: Element,
   ) {
-    this.bold = new BoldPrefixController(doc);
+    this.bold = new BoldPrefixController(doc, root);
     this.ruler = new Ruler(doc);
   }
 

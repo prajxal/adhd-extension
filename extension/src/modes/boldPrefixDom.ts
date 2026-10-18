@@ -52,7 +52,11 @@ export class BoldPrefixController {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private queue: Promise<void> = Promise.resolve();
 
-  constructor(private readonly doc: Document = document) {}
+  /** `root` limits processing to part of the page (the reader's document); default: body. */
+  constructor(
+    private readonly doc: Document = document,
+    private readonly root?: Element,
+  ) {}
 
   get isActive(): boolean {
     return this.active;
@@ -94,8 +98,9 @@ export class BoldPrefixController {
     this.intensity = intensity;
     addPageStyle(BOLD_STYLE_ID, BOLD_CSS, this.doc);
     this.observer = new MutationObserver(this.onMutations);
-    this.observer.observe(this.doc.body, { childList: true, subtree: true });
-    this.process([this.doc.body]);
+    const root = this.root ?? this.doc.body;
+    this.observer.observe(root, { childList: true, subtree: true });
+    this.process([root]);
   }
 
   private async stop(): Promise<void> {

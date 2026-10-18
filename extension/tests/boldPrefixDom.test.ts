@@ -100,6 +100,15 @@ describe('BoldPrefixController', () => {
     expect(code.querySelector('[data-rw]')).toBeNull();
   });
 
+  it('can be limited to one part of the page', async () => {
+    const limited = new BoldPrefixController(document, document.getElementById('p1') ?? undefined);
+    await limited.enable(0.45);
+    expect(document.querySelector('#p1 b[data-rw="b"]')).not.toBeNull();
+    expect(document.querySelector('h1 [data-rw]')).toBeNull();
+    await limited.disable();
+    expect(document.querySelector('[data-rw]')).toBeNull();
+  });
+
   it('keeps text the page changed while bold-prefix was on', async () => {
     await controller.enable(0.45);
     const li = document.querySelector('li');

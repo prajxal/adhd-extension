@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react';
+import { readerPath } from '@/src/docs/open';
 import type { ContentMessage } from '@/src/shared/messages';
 import {
   INTENSITY_MAX,
@@ -186,6 +187,19 @@ export function App(): ReactElement {
             </label>
           ))}
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Documents</legend>
+        <button
+          type="button"
+          className="open-file"
+          onClick={() => {
+            void browser.tabs.create({ url: browser.runtime.getURL(readerPath()) });
+          }}
+        >
+          Open a PDF or PowerPoint file…
+        </button>
       </fieldset>
 
       <fieldset>

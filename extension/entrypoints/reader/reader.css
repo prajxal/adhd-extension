@@ -1,0 +1,254 @@
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --fg: #1b1b1f;
+  --muted: #5d5e66;
+  --border: #dedcd5;
+  --accent: #1a56c4;
+  --accent-fg: #ffffff;
+  --section-label: #6b5a2e;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181b;
+    --surface: #1f2024;
+    --fg: #ececf0;
+    --muted: #a9abb3;
+    --border: #34353b;
+    --accent: #8fb4ff;
+    --accent-fg: #0f1730;
+    --section-label: #d6c08a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 18px/1.65 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- top bar ---- */
+.rw-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.rw-brand {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.rw-bar-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.rw-button-primary,
+.rw-button-secondary {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rw-button-primary {
+  border: none;
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.rw-button-secondary {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg);
+}
+
+/* ---- panels: empty, permission, loading, error ---- */
+.rw-main {
+  padding: 32px 20px 96px;
+}
+
+.rw-panel {
+  max-width: 34rem;
+  margin: 12vh auto 0;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: center;
+}
+
+.rw-panel h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  line-height: 1.3;
+}
+
+.rw-panel p {
+  margin: 0 0 18px;
+  color: var(--muted);
+}
+
+.rw-panel .rw-hint {
+  margin: 12px 0 0;
+  font-size: 15px;
+}
+
+.rw-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.rw-status {
+  color: var(--muted);
+}
+
+.rw-drop {
+  position: fixed;
+  inset: 12px;
+  display: grid;
+  place-items: center;
+  border: 3px dashed var(--accent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  font-size: 22px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* ---- the document ---- */
+.rw-doc {
+  max-width: 68ch;
+  margin: 0 auto;
+}
+
+.rw-doc-title {
+  margin: 0 0 28px;
+  font-size: 26px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.rw-doc-section {
+  padding: 22px 0 6px;
+  border-top: 1px solid var(--border);
+}
+
+.rw-doc-section h2 {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 12px;
+  font-size: 22px;
+  line-height: 1.3;
+}
+
+.rw-section-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--section-label);
+}
+
+.rw-doc h3 {
+  margin: 24px 0 8px;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.rw-doc p,
+.rw-doc ul {
+  margin: 0 0 14px;
+}
+
+.rw-doc ul ul {
+  margin: 4px 0 0;
+}
+
+.rw-doc li + li {
+  margin-top: 4px;
+}
+
+.rw-empty-section {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.rw-table-wrap {
+  margin: 0 0 16px;
+  overflow-x: auto;
+}
+
+.rw-doc table {
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.rw-doc th,
+.rw-doc td {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rw-doc th {
+  background: color-mix(in srgb, var(--border) 45%, transparent);
+}
+
+.rw-notes {
+  margin: 4px 0 16px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.rw-notes summary {
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rw-notes p {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 520px) {
+  .rw-bar {
+    padding: 8px 12px;
+  }
+  .rw-main {
+    padding: 20px 14px 80px;
+  }
+}
